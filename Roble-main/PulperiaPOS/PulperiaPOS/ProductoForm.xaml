@@ -1,0 +1,80 @@
+﻿<Window x:Class="PulperiaPOS.ProductoForm"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PulperiaPOS"
+        mc:Ignorable="d"
+        Title="Producto"
+        Icon="{DynamicResource AppIcon}"
+        Background="#FF144734"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized">
+
+    <Grid Margin="40">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Botón Volver -->
+        <Button Content="Volver"
+                Click="BtnCancelar_Click"
+                Background="#fd7e14" Foreground="White"
+                HorizontalAlignment="Left"
+                Margin="0,0,0,10"
+                Width="90"
+                Grid.Row="0"/>
+
+        <!-- Formulario -->
+        <!-- ...parte superior sin cambios... -->
+
+        <StackPanel Grid.Row="1" VerticalAlignment="Top" Width="400" HorizontalAlignment="Center">
+            <TextBlock Text="Código de Barras (ID):" Foreground="White" Margin="0,10,0,5"/>
+            <TextBox x:Name="txtProductoID"/>
+
+            <TextBlock Text="Nombre:" Foreground="White" Margin="0,10,0,5"/>
+            <TextBox x:Name="txtNombre"/>
+
+            <TextBlock Text="Proveedor:" Foreground="White" Margin="0,10,0,5"/>
+            <TextBox x:Name="txtProveedor"/>
+
+            <TextBlock Text="Costo:" Foreground="White" Margin="0,10,0,5"/>
+            <TextBox x:Name="txtCosto" TextChanged="txtCosto_TextChanged"/>
+
+            <TextBlock Text="Ganancia (%):" Foreground="White" Margin="0,10,0,5"/>
+            <TextBlock x:Name="lblGananciaSeleccionada"
+               Text="30%" Foreground="White"
+               FontWeight="Bold" FontSize="16" Margin="0,0,0,5"/>
+            <StackPanel Orientation="Horizontal">
+                <Slider x:Name="sliderGanancia" Minimum="30" Maximum="50"
+                TickFrequency="5" IsSnapToTickEnabled="True"
+                Ticks="30,35,40,45,50" TickPlacement="BottomRight"
+                ValueChanged="sliderGanancia_ValueChanged"
+                Width="300" Margin="0,0,0,10"/>
+                <TextBlock x:Name="txtPorcentaje" Foreground="White" Margin="10,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <CheckBox x:Name="chkRedondear" Content="Redondear precio final" Margin="0,5"/>
+            <CheckBox x:Name="chkPrecioManual" Content="Editar precio manualmente" Margin="0,5"/>
+
+            <TextBlock Text="Precio (calculado):" Foreground="White" Margin="0,10,0,5"/>
+            <TextBox x:Name="txtPrecio" Background="#eee"/>
+
+            <TextBlock Text="Stock:" Foreground="White" Margin="0,10,0,5"/>
+            <TextBox x:Name="txtStock"/>
+
+            <TextBlock Text="Vendido:" Foreground="White" Margin="0,10,0,5"/>
+            <TextBox x:Name="txtVendido"/>
+        </StackPanel>
+
+        <!-- ...parte inferior sin cambios... -->
+
+        <!-- Botones Guardar y Cancelar -->
+        <StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Guardar" Click="BtnGuardar_Click" Margin="5" Width="100" Background="#28a745" Foreground="White"/>
+            <Button Content="Cancelar" Click="BtnCancelar_Click" Margin="5" Width="100" Background="#6c757d" Foreground="White"/>
+        </StackPanel>
+    </Grid>
+</Window>

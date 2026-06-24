@@ -1,0 +1,82 @@
+﻿<Window x:Class="PulperiaPOS.DonacionesPage"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Donaciones"
+        Icon="{DynamicResource AppIcon}"
+        Background="#FF144734"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        ResizeMode="CanResize">
+
+    <Grid Background="#FF144734" Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- PARTE SUPERIOR -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10" Grid.Row="0" Background="#FF144734">
+                       <StackPanel Margin="5" Width="300">
+                <TextBlock Text="Motivo de Donación:" FontWeight="Bold" Foreground="White"/>
+                <TextBox x:Name="MotivoTextBox"/>
+            </StackPanel>
+
+            <StackPanel Margin="5">
+                <TextBlock Text="Total Donado:" FontWeight="Bold" Foreground="White"/>
+                <TextBlock x:Name="TotalDonacionTextBlock" Text="₡0.00" Foreground="White" FontWeight="Bold"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- PARTE CENTRAL -->
+        <Grid Grid.Row="1" Background="#FF144734">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Búsqueda -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10" Grid.Row="0">
+                <StackPanel Margin="5">
+                    <TextBlock Text="Buscar producto por nombre o código:" FontWeight="Bold" Margin="0,0,0,5" Foreground="White"/>
+                    <TextBox x:Name="BuscarProductoTextBox"
+         Width="300"
+         Margin="5"
+         KeyDown="BuscarProductoTextBox_KeyDown"
+         Tag="Buscar producto por ID o Nombre"/>
+                </StackPanel>
+                <Button Content="Agregar Producto" Click="AgregarProducto_Click" Margin="5" VerticalAlignment="Bottom"
+        Background="#28a745" Foreground="White"/>
+
+            </StackPanel>
+
+            <!-- DataGrid -->
+            <DataGrid x:Name="ProductosDataGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserAddRows="False"
+                      Margin="0" CellEditEnding="ProductosDataGrid_CellEditEnding">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                    <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad, Mode=TwoWay}" Width="100"/>
+                    <DataGridTextColumn Header="Precio Unitario" Binding="{Binding PrecioUnitario}" Width="120"/>
+                    <DataGridTextColumn Header="Subtotal" Binding="{Binding Subtotal}" Width="120"/>
+                    <DataGridTemplateColumn Header="Acciones" Width="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Eliminar" Click="EliminarProducto_Click"
+                                        Background="#dc3545" Foreground="White"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <!-- PARTE INFERIOR -->
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Grid.Row="2" HorizontalAlignment="Right">
+            <CheckBox x:Name="ImprimirReciboCheckBox" Content="Imprimir comprobante" IsChecked="True" Foreground="White" Margin="10"/>
+            <Button x:Name="RegistrarDonacionButton" Content="Registrar Donación" Click="RegistrarDonacion_Click"
+                    Margin="5" Background="#28a745" Foreground="White" Width="150"/>
+            <Button Content="Volver" Click="BtnVolver_Click" Width="80" Height="30"
+                    Background="#fd7e14" Foreground="White"/>
+        </StackPanel>
+    </Grid>
+</Window>

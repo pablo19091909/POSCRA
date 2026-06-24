@@ -1,0 +1,80 @@
+﻿<Window x:Class="PulperiaPOS.IngresoCajaPage"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PulperiaPOS"
+        mc:Ignorable="d"
+       Title="Ingreso de Dinero a Caja"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        Background="#FF144734"
+        Icon="{DynamicResource AppIcon}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Grid.Row="0" Margin="0,0,0,10">
+            <Button Content="Volver"
+                    Width="90"
+                    Height="35"
+                    Background="#fd7e14"
+                    Foreground="White"
+                    Click="BtnVolver_Click"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Formulario de ingreso -->
+            <StackPanel Grid.Column="0" Margin="10" VerticalAlignment="Top">
+                <TextBlock Text="Registrar Ingreso de Caja"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           Margin="0,0,0,20"/>
+
+                <TextBlock Text="Monto a Ingresar:" Foreground="White"/>
+                <TextBox Name="txtMontoIngreso" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Motivo del Ingreso:" Foreground="White"/>
+                <TextBox Name="txtMotivoIngreso" Height="60" TextWrapping="Wrap" Margin="0,0,0,20"/>
+
+                <Button Content="Registrar Ingreso"
+                        Click="RegistrarIngreso_Click"
+                        Width="160"
+                        Height="40"
+                        Background="#28a745"
+                        Foreground="White"/>
+
+                <TextBlock Text="Total en Caja Actual:" Foreground="White"/>
+                <TextBox Name="txtTotalCaja" IsReadOnly="True" Margin="0,0,0,10" TextChanged="txtTotalCaja_TextChanged"/>
+
+               
+
+            </StackPanel>
+
+            <!-- Historial de ingresos -->
+            <StackPanel Grid.Column="1" Margin="10">
+                <TextBlock Text="Historial de Ingresos"
+                           FontWeight="Bold"
+                           FontSize="16"
+                           Foreground="White"
+                           Margin="0,0,0,10"/>
+                <DataGrid Name="dgIngresos"
+                          AutoGenerateColumns="True"
+                          Height="400"
+                          Background="White"
+                          AlternatingRowBackground="#FFEFEFEF"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="All"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

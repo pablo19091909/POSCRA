@@ -1,0 +1,22 @@
+﻿<Window x:Class="PantallaPublicaApp.VentanaCarga"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Conectando..."
+        Height="200"
+        Width="400"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        Background="#FF144734"
+        AllowsTransparency="True"
+        ShowInTaskbar="False"
+        Topmost="True">
+    <Grid>
+        <TextBlock Text="Conectando a la base de datos..."
+                   FontSize="24"
+                   Foreground="White"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+    </Grid>
+</Window>

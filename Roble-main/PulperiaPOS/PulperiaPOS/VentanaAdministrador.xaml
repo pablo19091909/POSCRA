@@ -1,0 +1,79 @@
+﻿<Window x:Class="PulperiaPOS.VentanaAdministrador"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PulperiaPOS"
+        mc:Ignorable="d"
+        Title="Administrador"
+        WindowState="Maximized"
+        WindowStartupLocation="CenterScreen"
+        Icon="{DynamicResource AppIcon}"
+        Background="#FF144734">
+
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Encabezado -->
+            <RowDefinition Height="*"/>
+            <!-- Contenido -->
+            <RowDefinition Height="Auto"/>
+            <!-- Footer -->
+        </Grid.RowDefinitions>
+
+        <!-- ENCABEZADO -->
+        <TextBlock x:Name="TextoBienvenida"
+                   Text="Bienvenido Administrador:"
+                   FontSize="30"
+                   FontWeight="Bold"
+                   Foreground="White"
+                   HorizontalAlignment="Center"
+                   Margin="0,20"/>
+
+        <!-- CUERPO PRINCIPAL -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- MENÚ DE OPCIONES -->
+            <ScrollViewer Grid.Column="0" Margin="20" VerticalScrollBarVisibility="Auto">
+            <StackPanel Grid.Column="0" Margin="20" VerticalAlignment="Top">
+                <Button Content="Inventario" Click="BtnVerInventario_Click" Margin="0,10" FontSize="16" Height="60"/>
+                <Button Content="Clientes" Click="BtnClientes_Click" Margin="0,10" FontSize="16" Height="60"/>
+                <Button Content="Ventas" Click="BtnVentasPage_Click" Margin="0,10" FontSize="16" Height="60"/>
+                <Button Content="Donaciones" Click="BtnDonacionesPage_Click" Margin="0,10" FontSize="16" Height="60"/>
+                <Button Content="Cierre Caja" Click="BtnCierreCajaPage_Click" Margin="0,10" FontSize="16" Height="60"/>
+                <Button Content="Ingreso Caja" Click="BtnIngresoCajaPage_Click" FontSize="16" Height="60"/>
+                <Button Content="Retiro Caja" Click="BtnRetiroCajaPage_Click" Margin="0,10" FontSize="16" Height="60"/>
+                <Button Content="Usuarios" Click="BtnUsuariosPage_Click" FontSize="16" Height="60"/>
+                    <Button Content="Tipo de Cambio" Click="BtnTipoCambio_Click" Margin="0,10" FontSize="16" Height="60"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- PANEL INFORMATIVO / EXTRA -->
+            <StackPanel Grid.Column="1" Margin="20" VerticalAlignment="Top" HorizontalAlignment="Center">
+                <Image Source="/Imagenes/Blanco3.png"
+                       Width="180"
+                       Height="250"
+                       Stretch="Uniform"
+                       Margin="0,0,0,20"/>
+                <Button Content="Abrir caja" Click="AbrirCaja_Click" Width="200" Height="45" Margin="0,10"/>
+                <Button Content="Imprimir Prueba" Click="BtnImprimirPrueba_Click" Margin="5" Width="200" Height="45"/>
+
+            </StackPanel>
+        </Grid>
+
+        <!-- PIE DE PÁGINA -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,10,10">
+            <Button Content="Cerrar Sesión"
+                    Click="BtnLogout_Click"
+                    Width="180"
+                    Height="50"
+                    Background="Crimson"
+                    Foreground="White"
+                    FontWeight="Bold"/>
+        </StackPanel>
+    </Grid>
+</Window>

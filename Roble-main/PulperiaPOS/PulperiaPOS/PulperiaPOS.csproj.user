@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <_LastSelectedProfileId>D:\Campa CRA\Programa\PulperiaPOS\PulperiaPOS\Properties\PublishProfiles\FolderProfile1.pubxml</_LastSelectedProfileId>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Update="ClienteForm.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="ClientePage.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="DonacionesPage.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="IngresoCajaPage.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="InventarioWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="LoginWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="ProductoForm.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="SaldoLiberadoPage.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="TipoCambioWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="VentanaAdministrador.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="VentanaAnfitrion.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="VentanaEditarUsuario.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="VentanaUsuarios.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="VentasPage.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\CierreCajaPage.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\DetalleVentaWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\RetirosCajaPage.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\VentasCrudWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>

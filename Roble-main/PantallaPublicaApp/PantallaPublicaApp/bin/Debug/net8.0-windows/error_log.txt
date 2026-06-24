@@ -1,0 +1,10 @@
+[29/6/2025 18:12:35] Error en MainWindow:
+System.InvalidOperationException: La aplicación está ejecutando ya el distribuidor.
+   at System.Windows.Application.RunDispatcher(Object ignore)
+   at System.Windows.Application.RunInternal(Window window)
+   at PantallaPublicaApp.App.OnStartup(StartupEventArgs e) in D:\Campa CRA\Programa\PantallaPublicaApp\PantallaPublicaApp\App.xaml.cs:line 38
+[29/6/2025 18:13:18] Error en MainWindow:
+System.InvalidOperationException: La aplicación está ejecutando ya el distribuidor.
+   at System.Windows.Application.RunDispatcher(Object ignore)
+   at System.Windows.Application.RunInternal(Window window)
+   at PantallaPublicaApp.App.OnStartup(StartupEventArgs e) in D:\Campa CRA\Programa\PantallaPublicaApp\PantallaPublicaApp\App.xaml.cs:line 38

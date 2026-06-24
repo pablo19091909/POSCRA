@@ -1,0 +1,1 @@
+[25/6/2025 10:56:27] Error al abrir conexión: Database 'roblealtodb' on server 'pulperiasqlserver.database.windows.net' is not currently available.  Please retry the connection later.  If the problem persists, contact customer support, and provide them the session tracing ID of '{A320A9D7-618B-44A9-9C41-500FA5C3FB72}'.

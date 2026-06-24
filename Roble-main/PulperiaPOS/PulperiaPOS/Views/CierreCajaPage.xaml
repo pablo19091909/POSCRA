@@ -1,0 +1,86 @@
+﻿<Window x:Class="PulperiaPOS.Views.CierreCajaPage"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PulperiaPOS.Views"
+        mc:Ignorable="d"
+        Title="Cierre de Caja"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        Background="#FF144734"
+        Icon="{DynamicResource AppIcon}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Encabezado -->
+            <RowDefinition Height="*"/>
+            <!-- Contenido -->
+        </Grid.RowDefinitions>
+
+        <!-- Encabezado con botón volver -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Grid.Row="0" Margin="0,0,0,10">
+            <Button Content="Volver"
+                    Width="90"
+                    Height="35"
+                    Background="#fd7e14"
+                    Foreground="White"
+                    Click="BtnVolver_Click"/>
+        </StackPanel>
+
+        <!-- Cuerpo principal con formulario y datagrid -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Formulario de cierre -->
+            <StackPanel Grid.Column="0" Margin="10" VerticalAlignment="Top">
+                <TextBlock Text="Cierre de Caja - Hoy"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Left"
+                           Foreground="White"
+                           Margin="0,0,0,10"/>
+
+                <TextBlock Text="Total en Efectivo:" Foreground="White"/>
+                <TextBox Name="txtEfectivo" IsReadOnly="True" Margin="0,0,0,10" TextChanged="txtEfectivo_TextChanged"/>
+
+                <TextBlock Text="Total por SINPE:" Foreground="White"/>
+                <TextBox Name="txtSinpe" IsReadOnly="True" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Total por Datáfono:" Foreground="White"/>
+                <TextBox Name="txtDatafono" IsReadOnly="True" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Observaciones:" Foreground="White"/>
+                <TextBox Name="txtObservaciones" Height="60" TextWrapping="Wrap" Margin="0,0,0,10" TextChanged="txtObservaciones_TextChanged"/>
+
+                <Button Content="Guardar Cierre"
+                        Click="GuardarCierre_Click"
+                        Width="150"
+                        Height="40"
+                        Background="#28a745"
+                        Foreground="White"/>
+            </StackPanel>
+
+            <!-- Historial de cierres -->
+            <StackPanel Grid.Column="1" Margin="10">
+                <TextBlock Text="Cierres Anteriores:"
+                           FontWeight="Bold"
+                           FontSize="16"
+                           Foreground="White"
+                           Margin="0,0,0,10"/>
+                <DataGrid Name="dgCierres"
+                          AutoGenerateColumns="True"
+                          Height="400"
+                          Margin="0"
+                          Background="White"
+                          AlternatingRowBackground="#FFEFEFEF"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="All"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

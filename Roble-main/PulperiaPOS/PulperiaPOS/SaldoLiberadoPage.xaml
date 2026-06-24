@@ -1,0 +1,64 @@
+﻿<Window x:Class="PulperiaPOS.SaldoLiberadoPage"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Historial de Saldos Liberados"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        Height="600" Width="900"
+        Background="#FF144734"
+        Icon="{DynamicResource AppIcon}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Filtros -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBox x:Name="txtBuscarCliente"
+                     Width="200"
+                     Height="30"
+                     Margin="0,0,10,0"
+                     Tag="Buscar cliente"
+                     Foreground="Gray"/>
+
+            <!-- NUEVO: Selector de fecha -->
+            <DatePicker x:Name="dpFecha"
+                        Width="200"
+                        Margin="0,0,10,0"
+                        SelectedDateFormat="Short"/>
+
+            <!-- NUEVO: Botón de aplicar filtro -->
+            <Button Content="Filtrar"
+                    Width="80"
+                    Margin="0,0,10,0"
+                    Click="BtnFiltrar_Click"
+                    Background="#3498DB"
+                    Foreground="White"/>
+
+            <Button Content="Volver"
+                    Width="80"
+                    Margin="10,0,0,0"
+                    Click="BtnVolver_Click"
+                    Background="#fd7e14"
+                    Foreground="White"/>
+        </StackPanel>
+
+        <!-- Tabla -->
+        <DataGrid x:Name="dataGridLiberaciones"
+                  Grid.Row="1"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  AlternatingRowBackground="#FFEFEFEF"
+                  Background="White">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID" Binding="{Binding idLiberacion}" Width="Auto"/>
+                <DataGridTextColumn Header="Cliente" Binding="{Binding nombreCliente}" Width="*"/>
+                <DataGridTextColumn Header="Monto" Binding="{Binding monto}" Width="Auto" />
+                <DataGridTextColumn Header="Fecha" Binding="{Binding fecha}" Width="Auto" />
+                <DataGridTextColumn Header="Motivo" Binding="{Binding motivo}" Width="2*" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>

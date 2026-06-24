@@ -1,0 +1,1 @@
+[9/6/2025 14:28:13] Error al abrir conexión: Login failed for user 'CRAPOS1948'.

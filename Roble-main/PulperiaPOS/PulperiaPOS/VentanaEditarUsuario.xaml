@@ -1,0 +1,68 @@
+﻿<Window x:Class="PulperiaPOS.VentanaEditarUsuario"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PulperiaPOS"
+        mc:Ignorable="d"
+        Title="Gestión de Usuario"
+        Height="420" Width="500"
+        Icon="{DynamicResource AppIcon}"
+        Background="#FF144734"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Título -->
+            <RowDefinition Height="*"/>
+            <!-- Formulario -->
+            <RowDefinition Height="Auto"/>
+            <!-- Botones -->
+        </Grid.RowDefinitions>
+
+        <!-- Título -->
+        <TextBlock Text="Formulario de Usuario"
+                   FontSize="24"
+                   FontWeight="Bold"
+                   Foreground="White"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,20"/>
+
+        <!-- Formulario -->
+        <StackPanel Grid.Row="1" Margin="10,0" VerticalAlignment="Top">
+            <TextBlock Text="Nombre:" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <TextBox x:Name="txtNombre" Height="30" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Contraseña:" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <PasswordBox x:Name="txtContrasena" Height="30" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Rol:" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <ComboBox x:Name="cmbRol" Height="30" Margin="0,0,0,10">
+                <ComboBoxItem Content="Administrador"/>
+                <ComboBoxItem Content="Anfitrion"/>
+            </ComboBox>
+
+            <!-- Mensaje de error -->
+            <TextBlock x:Name="txtError"
+                       Foreground="Red"
+                       FontWeight="Bold"
+                       Margin="0,10,0,0"
+                       Visibility="Collapsed"/>
+        </StackPanel>
+
+        <!-- Botones -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,30,0,0">
+            <Button Content="Guardar"
+                    Click="BtnGuardar_Click"
+                    Width="100" Height="40"
+                    Background="#28a745" Foreground="White"
+                    Margin="5"/>
+            <Button Content="Cancelar"
+                    Click="BtnCancelar_Click"
+                    Width="100" Height="40"
+                    Background="#fd7e14" Foreground="White"
+                    Margin="5"/>
+        </StackPanel>
+    </Grid>
+</Window>
