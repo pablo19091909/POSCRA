@@ -1,0 +1,28 @@
+{
+  "ConnectionStrings": {
+    "PosDatabase": "Server=SERVIDOR;Database=BASE;User Id=USUARIO;Password=CAMBIAR_ESTE_VALOR;Encrypt=True;TrustServerCertificate=False;"
+  },
+  "Authentication": {
+    "Enabled": false,
+    "EnableLegacyHashUpgrade": false,
+    "BcryptWorkFactor": 12
+  },
+  "Jwt": {
+    "Issuer": "POS.Api",
+    "Audience": "PulperiaPOS.WPF",
+    "SigningKey": "CONFIGURAR_MEDIANTE_SECRETO_LOCAL_O_VARIABLE_ENTORNO",
+    "AccessTokenMinutes": 45
+  },
+  "RateLimiting": {
+    "Login": {
+      "PermitLimit": 5,
+      "WindowSeconds": 60
+    }
+  },
+  "Cors": {
+    "AllowedOrigins": [
+      "https://localhost:5001",
+      "http://localhost:5000"
+    ]
+  }
+}

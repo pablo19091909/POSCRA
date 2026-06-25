@@ -1,0 +1,11 @@
+@POS.Api_HostAddress = http://localhost:5274
+
+GET {{POS.Api_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{POS.Api_HostAddress}}/api/system/version
+Accept: application/json
+
+###

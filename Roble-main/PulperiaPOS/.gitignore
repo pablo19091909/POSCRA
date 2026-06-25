@@ -1,6 +1,8 @@
 appsettings.Development.json
+POS.Api/appsettings.Development.json
 **/appsettings.Development.json
 appsettings.Production.json
+POS.Api/appsettings.Production.json
 **/appsettings.Production.json
 .env
 *.bak
