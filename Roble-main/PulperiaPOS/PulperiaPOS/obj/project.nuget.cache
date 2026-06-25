@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "zTomJZOPzrw=",
+  "dgSpecHash": "xmqa8b4/XP8=",
   "success": true,
-  "projectFilePath": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\PulperiaPOS.csproj",
+  "projectFilePath": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\PulperiaPOS.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\pablo\\.nuget\\packages\\entityframework\\6.4.4\\entityframework.6.4.4.nupkg.sha512",
     "C:\\Users\\pablo\\.nuget\\packages\\microsoft.csharp\\4.7.0\\microsoft.csharp.4.7.0.nupkg.sha512",

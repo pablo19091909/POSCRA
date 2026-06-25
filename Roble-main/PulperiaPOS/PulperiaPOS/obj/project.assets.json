@@ -3542,11 +3542,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\PulperiaPOS.csproj",
+      "projectUniqueName": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\PulperiaPOS.csproj",
       "projectName": "PulperiaPOS",
-      "projectPath": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\PulperiaPOS.csproj",
+      "projectPath": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\PulperiaPOS.csproj",
       "packagesPath": "C:\\Users\\pablo\\.nuget\\packages\\",
-      "outputPath": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\obj\\",
+      "outputPath": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

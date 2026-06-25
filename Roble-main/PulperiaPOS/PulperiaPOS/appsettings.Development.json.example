@@ -1,0 +1,5 @@
+{
+  "ConnectionStrings": {
+    "PosDatabase": "Server=SERVIDOR;Database=BASE;User Id=USUARIO;Password=CAMBIAR_ESTE_VALOR;Encrypt=True;TrustServerCertificate=False;"
+  }
+}

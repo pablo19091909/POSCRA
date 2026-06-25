@@ -7,3 +7,7 @@
 [17/7/2025 10:38:13] Error al abrir conexión: Database 'roblealtodb' on server 'pulperiasqlserver.database.windows.net' is not currently available.  Please retry the connection later.  If the problem persists, contact customer support, and provide them the session tracing ID of '{1FFDDD61-235F-4AD1-8040-E1BA6CFDD516}'.
 [27/7/2025 20:06:09] Error al abrir conexión: Database 'roblealtodb' on server 'pulperiasqlserver.database.windows.net' is not currently available.  Please retry the connection later.  If the problem persists, contact customer support, and provide them the session tracing ID of '{7A097E02-8F86-4FEF-89B4-743038BCB010}'.
 [23/6/2026 19:25:09] Error al abrir conexión: Database 'roblealtodb' on server 'pulperiasqlserver.database.windows.net' is not currently available.  Please retry the connection later.  If the problem persists, contact customer support, and provide them the session tracing ID of '{325C7885-5A9E-4159-BE48-600AE501F901}'.
+[24/6/2026 18:28:04] Error al abrir conexion: SqlException
+[24/6/2026 18:32:22] Error al abrir conexion: SqlException
+[24/6/2026 18:33:29] Error al abrir conexion: SqlException
+[24/6/2026 18:34:04] Error al abrir conexion: SqlException

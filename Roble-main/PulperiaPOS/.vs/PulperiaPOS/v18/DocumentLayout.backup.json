@@ -1,21 +1,28 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "D:\\Campa CRA\\Programa\\PulperiaPOS\\",
+  "WorkspaceRootPath": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|d:\\campa cra\\programa\\pulperiapos\\pulperiapos\\ventaspage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|d:\\poscra\\roble-main\\pulperiapos\\pulperiapos\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|solutionrelative:pulperiapos\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Program Files\\dotnet\\sdk\\10.0.301\\Sdks\\Microsoft.NET.Sdk.WindowsDesktop\\targets\\Microsoft.WinFX.targets||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|d:\\poscra\\roble-main\\pulperiapos\\pulperiapos\\ventaspage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|solutionrelative:pulperiapos\\ventaspage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|d:\\campa cra\\programa\\pulperiapos\\pulperiapos\\ventaspage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "AbsoluteMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|d:\\poscra\\roble-main\\pulperiapos\\pulperiapos\\ventaspage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
       "RelativeMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|solutionrelative:pulperiapos\\ventaspage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|d:\\campa cra\\programa\\pulperiapos\\pulperiapos\\ventanaadministrador.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "AbsoluteMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|d:\\poscra\\roble-main\\pulperiapos\\pulperiapos\\ventanaadministrador.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
       "RelativeMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|solutionrelative:pulperiapos\\ventanaadministrador.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|d:\\campa cra\\programa\\pulperiapos\\pulperiapos\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "AbsoluteMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|d:\\poscra\\roble-main\\pulperiapos\\pulperiapos\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
       "RelativeMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|solutionrelative:pulperiapos\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
     }
   ],
@@ -31,23 +38,47 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "appsettings.Development.json",
+              "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\appsettings.Development.json",
+              "RelativeDocumentMoniker": "PulperiaPOS\\appsettings.Development.json",
+              "ToolTip": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\appsettings.Development.json",
+              "RelativeToolTip": "PulperiaPOS\\appsettings.Development.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-06-25T00:24:36.886Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Microsoft.WinFX.targets",
+              "DocumentMoniker": "C:\\Program Files\\dotnet\\sdk\\10.0.301\\Sdks\\Microsoft.NET.Sdk.WindowsDesktop\\targets\\Microsoft.WinFX.targets",
+              "ToolTip": "C:\\Program Files\\dotnet\\sdk\\10.0.301\\Sdks\\Microsoft.NET.Sdk.WindowsDesktop\\targets\\Microsoft.WinFX.targets",
+              "ViewState": "AgIAANEBAAAAAAAAAAAtwPYBAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003801|",
+              "WhenOpened": "2026-06-24T02:20:59.447Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "VentasPage.xaml.cs",
-              "DocumentMoniker": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\VentasPage.xaml.cs",
+              "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\VentasPage.xaml.cs",
               "RelativeDocumentMoniker": "PulperiaPOS\\VentasPage.xaml.cs",
-              "ToolTip": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\VentasPage.xaml.cs",
+              "ToolTip": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\VentasPage.xaml.cs",
               "RelativeToolTip": "PulperiaPOS\\VentasPage.xaml.cs",
-              "ViewState": "AgIAAKEDAAAAAAAAAAAuwMUDAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAKEDAAAAAAAAAAAuwLsDAAAoAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-06-24T01:22:50.426Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "VentasPage.xaml",
-              "DocumentMoniker": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\VentasPage.xaml",
+              "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\VentasPage.xaml",
               "RelativeDocumentMoniker": "PulperiaPOS\\VentasPage.xaml",
-              "ToolTip": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\VentasPage.xaml",
+              "ToolTip": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\VentasPage.xaml",
               "RelativeToolTip": "PulperiaPOS\\VentasPage.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
               "WhenOpened": "2026-06-24T01:22:50.511Z",
@@ -55,11 +86,11 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "VentanaAdministrador.xaml",
-              "DocumentMoniker": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\VentanaAdministrador.xaml",
+              "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\VentanaAdministrador.xaml",
               "RelativeDocumentMoniker": "PulperiaPOS\\VentanaAdministrador.xaml",
-              "ToolTip": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\VentanaAdministrador.xaml",
+              "ToolTip": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\VentanaAdministrador.xaml",
               "RelativeToolTip": "PulperiaPOS\\VentanaAdministrador.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
               "WhenOpened": "2026-06-24T01:22:50.515Z",
@@ -67,11 +98,11 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
               "Title": "MainWindow.xaml",
-              "DocumentMoniker": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\MainWindow.xaml",
+              "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\MainWindow.xaml",
               "RelativeDocumentMoniker": "PulperiaPOS\\MainWindow.xaml",
-              "ToolTip": "D:\\Campa CRA\\Programa\\PulperiaPOS\\PulperiaPOS\\MainWindow.xaml",
+              "ToolTip": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\MainWindow.xaml",
               "RelativeToolTip": "PulperiaPOS\\MainWindow.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
               "WhenOpened": "2026-06-24T01:22:50.519Z",
