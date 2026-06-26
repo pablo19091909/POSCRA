@@ -47,7 +47,10 @@ public sealed class UserRepository : IUserRepository
         await connection.OpenAsync(cancellationToken);
 
         var schema = await GetUserSchemaInfoAsync(connection, cancellationToken);
-        if (!schema.HasModernPasswordHash || !schema.HasPasswordHashVersion || !schema.HasPasswordMigratedUtc)
+        if (!schema.HasModernPasswordHash ||
+            !schema.HasPasswordHashVersion ||
+            !schema.HasPasswordMigratedUtc ||
+            !schema.HasLastLoginUtc)
         {
             _logger.LogInformation("Legacy password upgrade skipped because auth migration columns are missing.");
             return false;
@@ -58,7 +61,8 @@ public sealed class UserRepository : IUserRepository
             UPDATE usuario
             SET password_hash_v2 = @passwordHash,
                 password_hash_version = @hashVersion,
-                password_migrada_utc = SYSUTCDATETIME()
+                password_migrada_utc = SYSUTCDATETIME(),
+                ultimo_login_utc = SYSUTCDATETIME()
             WHERE idUsuario = @userId
               AND password_hash_v2 IS NULL;
             """;

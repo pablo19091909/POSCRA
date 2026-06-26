@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "Api+POS",
+    "Projects": [
+      {
+        "Path": "POS.Api\\POS.Api.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "PulperiaPOS\\PulperiaPOS.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

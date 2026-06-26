@@ -1,4 +1,14 @@
 {
+  "Api": {
+    "BaseUrl": "https://localhost:7046/",
+    "RequestTimeoutSeconds": 30
+  },
+  "FeatureFlags": {
+    "UseApiLogin": false,
+    "UseClientesApi": false,
+    "UseVentasClienteSelectorApi": false,
+    "UseVentasProductosApi": false
+  },
   "ConnectionStrings": {
     "PosDatabase": "Server=SERVIDOR;Database=BASE;User Id=USUARIO;Password=CAMBIAR_ESTE_VALOR;Encrypt=True;TrustServerCertificate=False;"
   }

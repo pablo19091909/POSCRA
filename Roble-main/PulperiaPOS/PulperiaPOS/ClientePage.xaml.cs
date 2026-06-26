@@ -1,7 +1,13 @@
-﻿using PulperiaPOS.DataAccess;
+using PulperiaPOS.ApiClients;
+using PulperiaPOS.Configuration;
+using PulperiaPOS.DataAccess;
+using PulperiaPOS.Models.Api;
+using PulperiaPOS.Models.Clientes;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data.SqlClient;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -24,7 +30,18 @@ namespace PulperiaPOS
             }
         }
 
-        private void CargarClientes()
+        private async void CargarClientes()
+        {
+            if (FeatureFlags.UseClientesApi)
+            {
+                await CargarClientesDesdeApiAsync(null);
+                return;
+            }
+
+            CargarClientesDesdeSql();
+        }
+
+        private void CargarClientesDesdeSql()
         {
             clientes.Clear();
             using var conn = DBConnection.GetConnection();
@@ -40,6 +57,33 @@ namespace PulperiaPOS
                     comprobante = reader.IsDBNull(3) ? "" : reader.GetString(3)
                 });
             }
+            dataGridClientes.ItemsSource = clientes;
+        }
+
+        private async Task CargarClientesDesdeApiAsync(string? busqueda)
+        {
+            clientes.Clear();
+
+            using var client = new ClientesApiClient();
+            var result = await client.GetClientesAsync(busqueda);
+            if (!result.Success)
+            {
+                MostrarErrorClientesApi(result);
+                dataGridClientes.ItemsSource = clientes;
+                return;
+            }
+
+            foreach (var cliente in result.Data ?? Array.Empty<ClienteListItemResponse>())
+            {
+                clientes.Add(new Cliente
+                {
+                    idCliente = cliente.IdCliente,
+                    nombre = cliente.Nombre,
+                    saldo = Convert.ToDouble(cliente.Saldo),
+                    comprobante = cliente.Comprobante
+                });
+            }
+
             dataGridClientes.ItemsSource = clientes;
         }
 
@@ -64,7 +108,7 @@ namespace PulperiaPOS
         {
             if (dataGridClientes.SelectedItem is Cliente seleccionado)
             {
-                // ❌ No permitir eliminar al Cliente General
+                // No permitir eliminar al Cliente General
                 if (seleccionado.idCliente == 0)
                 {
                     MessageBox.Show("No puedes eliminar al Cliente General.", "Operación no permitida", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -113,15 +157,20 @@ namespace PulperiaPOS
             }
         }
 
-
-
-
-        private void BtnBuscar_Click(object sender, RoutedEventArgs e)
+        private async void BtnBuscar_Click(object sender, RoutedEventArgs e)
         {
             string nombreBuscar = txtBuscar.Text.Trim().ToLower();
             if (string.IsNullOrWhiteSpace(nombreBuscar))
             {
                 CargarClientes();
+                return;
+            }
+
+            if (FeatureFlags.UseClientesApi)
+            {
+                await CargarClientesDesdeApiAsync(nombreBuscar);
+                if (clientes.Count == 0)
+                    MessageBox.Show("No se encontraron clientes con ese nombre.");
                 return;
             }
 
@@ -143,6 +192,16 @@ namespace PulperiaPOS
 
             if (clientes.Count == 0)
                 MessageBox.Show("No se encontraron clientes con ese nombre.");
+        }
+
+        private static void MostrarErrorClientesApi<T>(ApiRequestResult<T> result)
+        {
+            if (result.ErrorType is ApiErrorType.Unauthorized or ApiErrorType.SessionExpired)
+            {
+                return;
+            }
+
+            MessageBox.Show(result.Message, "Clientes", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         private void BtnVolver_Click(object sender, RoutedEventArgs e)
@@ -215,7 +274,6 @@ namespace PulperiaPOS
             }
         }
 
-
         private void BtnReporteClientesSaldo_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -270,7 +328,6 @@ namespace PulperiaPOS
                 MessageBox.Show("Error al generar el reporte: " + ex.Message);
             }
         }
-
 
         private void BtnHistorialLiberaciones_Click(object sender, RoutedEventArgs e)
         {

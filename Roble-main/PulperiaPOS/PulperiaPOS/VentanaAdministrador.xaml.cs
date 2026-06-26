@@ -82,8 +82,7 @@ namespace PulperiaPOS
             var result = MessageBox.Show("¿Deseas cerrar sesión?", "Cerrar sesión", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
-                UserSession.NombreUsuario = string.Empty;
-                UserSession.RolUsuario = string.Empty;
+                UserSession.Clear();
 
                 new LoginWindow().Show();
                 this.Close();

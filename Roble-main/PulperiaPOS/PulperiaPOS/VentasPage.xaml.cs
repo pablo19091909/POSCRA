@@ -1,4 +1,9 @@
-Ôªøusing PulperiaPOS.DataAccess;
+using PulperiaPOS.ApiClients;
+using PulperiaPOS.Configuration;
+using PulperiaPOS.DataAccess;
+using PulperiaPOS.Models.Api;
+using PulperiaPOS.Models.Clientes;
+using PulperiaPOS.Models.Productos;
 using PulperiaPOS.Views;
 using System;
 using System.Collections.Generic;
@@ -35,7 +40,18 @@ namespace PulperiaPOS
         private List<Cliente> todosLosClientes = new List<Cliente>();
         public List<Cliente> ClientesFiltrados { get; set; } = new List<Cliente>();
 
-        private void CargarClientes()
+        private async void CargarClientes()
+        {
+            if (FeatureFlags.UseVentasClienteSelectorApi)
+            {
+                await CargarClientesDesdeApiAsync(null);
+                return;
+            }
+
+            CargarClientesDesdeSql();
+        }
+
+        private void CargarClientesDesdeSql()
         {
             todosLosClientes.Clear();
             ClientesFiltrados.Clear();
@@ -61,7 +77,6 @@ namespace PulperiaPOS
                 MessageBox.Show($"Error al cargar los clientes: {ex.Message}");
             }
 
-            // ‚úÖ Agrega Cliente General como primer cliente si no est√°
             if (!todosLosClientes.Any(c => c.nombre == "Cliente General"))
             {
                 todosLosClientes.Insert(0, new Cliente { idCliente = 0, nombre = "Cliente General" });
@@ -69,9 +84,54 @@ namespace PulperiaPOS
 
             ClientesFiltrados = new List<Cliente>(todosLosClientes);
             ClienteComboBox.ItemsSource = ClientesFiltrados;
-            ClienteComboBox.SelectedIndex = 0; // Por defecto Cliente General
+            ClienteComboBox.SelectedIndex = 0;
         }
 
+        private async System.Threading.Tasks.Task CargarClientesDesdeApiAsync(string? busqueda)
+        {
+            todosLosClientes.Clear();
+            ClientesFiltrados.Clear();
+
+            using var client = new ClientesApiClient();
+            var result = await client.GetClientesAsync(busqueda);
+            if (!result.Success)
+            {
+                MostrarErrorClientesApi(result);
+                ClienteComboBox.ItemsSource = ClientesFiltrados;
+                ClienteComboBox.SelectedIndex = -1;
+                return;
+            }
+
+            foreach (var cliente in result.Data ?? Array.Empty<ClienteListItemResponse>())
+            {
+                todosLosClientes.Add(new Cliente
+                {
+                    idCliente = cliente.IdCliente,
+                    nombre = cliente.Nombre,
+                    saldo = Convert.ToDouble(cliente.Saldo),
+                    comprobante = cliente.Comprobante
+                });
+            }
+
+            if (!todosLosClientes.Any(c => c.nombre == "Cliente General"))
+            {
+                todosLosClientes.Insert(0, new Cliente { idCliente = 0, nombre = "Cliente General" });
+            }
+
+            ClientesFiltrados = new List<Cliente>(todosLosClientes);
+            ClienteComboBox.ItemsSource = ClientesFiltrados;
+            ClienteComboBox.SelectedIndex = string.IsNullOrWhiteSpace(busqueda) && ClientesFiltrados.Count > 0 ? 0 : -1;
+        }
+
+        private static void MostrarErrorClientesApi<T>(ApiRequestResult<T> result)
+        {
+            if (result.ErrorType is ApiErrorType.Unauthorized or ApiErrorType.SessionExpired)
+            {
+                return;
+            }
+
+            MessageBox.Show(result.Message, "Clientes", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
 
 
 
@@ -84,7 +144,7 @@ namespace PulperiaPOS
             MetodoPagoComboBox.Items.Add(new ComboBoxItem { Content = "Efectivo" });
             MetodoPagoComboBox.Items.Add(new ComboBoxItem { Content = "Tarjeta" });
             MetodoPagoComboBox.Items.Add(new ComboBoxItem { Content = "Sinpe" });
-            MetodoPagoComboBox.Items.Add(new ComboBoxItem { Content = "D√≥lares" });
+            MetodoPagoComboBox.Items.Add(new ComboBoxItem { Content = "DÛlares" });
 
 
             saldoClienteItem = new ComboBoxItem { Content = "Saldo Cliente" };
@@ -108,13 +168,19 @@ namespace PulperiaPOS
             BuscarProductoTextBox.Focus(); // Coloca el foco en el textbox al abrir
         }
 
-        private void AgregarProductoPorCodigo()
+        private async void AgregarProductoPorCodigo()
         {
             string textoBusqueda = BuscarProductoTextBox.Text.Trim();
 
             if (string.IsNullOrEmpty(textoBusqueda))
             {
-                MessageBox.Show("Por favor ingrese un nombre o c√≥digo de producto.");
+                MessageBox.Show("Por favor ingrese un nombre o cÛdigo de producto.");
+                return;
+            }
+
+            if (FeatureFlags.UseVentasProductosApi)
+            {
+                await AgregarProductoDesdeApiAsync(textoBusqueda, acumularExistente: true);
                 return;
             }
 
@@ -184,13 +250,19 @@ namespace PulperiaPOS
 
 
 
-        private void AgregarProducto_Click(object sender, RoutedEventArgs e)
+        private async void AgregarProducto_Click(object sender, RoutedEventArgs e)
         {
             string textoBusqueda = BuscarProductoTextBox.Text.Trim();
 
             if (string.IsNullOrEmpty(textoBusqueda))
             {
-                MessageBox.Show("Por favor ingrese un nombre o c√≥digo de producto.");
+                MessageBox.Show("Por favor ingrese un nombre o cÛdigo de producto.");
+                return;
+            }
+
+            if (FeatureFlags.UseVentasProductosApi)
+            {
+                await AgregarProductoDesdeApiAsync(textoBusqueda, acumularExistente: false);
                 return;
             }
 
@@ -243,6 +315,100 @@ namespace PulperiaPOS
 
 
 
+
+
+        private async System.Threading.Tasks.Task AgregarProductoDesdeApiAsync(string textoBusqueda, bool acumularExistente)
+        {
+            using var client = new ProductosApiClient();
+            var result = await client.BuscarPrimeroParaVentaAsync(textoBusqueda);
+            if (!result.Success)
+            {
+                MostrarErrorProductosApi(result);
+                return;
+            }
+
+            if (result.Data is null)
+            {
+                MessageBox.Show("Producto no encontrado.");
+                return;
+            }
+
+            AgregarProductoApiAlCarrito(result.Data, acumularExistente);
+        }
+
+        private void AgregarProductoApiAlCarrito(ProductoVentaApiResponse productoApi, bool acumularExistente)
+        {
+            int stock = productoApi.StockDisponible;
+            if (stock <= 0)
+            {
+                MessageBox.Show("El producto no tiene stock disponible.");
+                return;
+            }
+
+            var productoExistente = productosEnVenta.FirstOrDefault(p => p.IdProducto == productoApi.IdProducto);
+            if (acumularExistente && productoExistente != null)
+            {
+                if (productoExistente.Cantidad + 1 > stock)
+                {
+                    MessageBox.Show("No hay suficiente stock disponible para agregar otra unidad.");
+                    return;
+                }
+
+                productoExistente.Cantidad += 1;
+            }
+            else
+            {
+                var producto = new ProductoVenta
+                {
+                    IdProducto = productoApi.IdProducto,
+                    Nombre = productoApi.Nombre,
+                    PrecioUnitario = Convert.ToDouble(productoApi.Precio),
+                    Cantidad = 1,
+                    StockDisponible = stock
+                };
+
+                productosEnVenta.Add(producto);
+            }
+
+            ActualizarDataGrid();
+            ActualizarTotal();
+            BuscarProductoTextBox.Clear();
+            BuscarProductoTextBox.Focus();
+            ActualizarVisualSaldoCliente();
+        }
+
+        private async System.Threading.Tasks.Task CargarSugerenciasProductosDesdeApiAsync(string texto)
+        {
+            using var client = new ProductosApiClient();
+            var result = await client.GetProductosAsync(busqueda: texto, limit: 20);
+            if (!result.Success)
+            {
+                MostrarErrorProductosApi(result);
+                SugerenciasListBox.ItemsSource = null;
+                SugerenciasPopup.IsOpen = false;
+                return;
+            }
+
+            var resultados = (result.Data ?? Array.Empty<ProductoVentaApiResponse>())
+                .Select(p => p.Nombre)
+                .Where(nombre => !string.IsNullOrWhiteSpace(nombre))
+                .Distinct()
+                .ToList();
+
+            SugerenciasListBox.ItemsSource = resultados;
+            SugerenciasPopup.IsOpen = resultados.Any();
+        }
+
+        private static void MostrarErrorProductosApi<T>(ApiRequestResult<T> result)
+        {
+            if (result.ErrorType is ApiErrorType.Unauthorized or ApiErrorType.SessionExpired)
+            {
+                return;
+            }
+
+            MessageBox.Show(result.Message);
+        }
+
         private void ActualizarDataGrid()
         {
             ProductosDataGrid.ItemsSource = null;
@@ -268,10 +434,10 @@ namespace PulperiaPOS
             ActualizarVisualSaldoCliente();
             BuscarProductoTextBox.Focus();
 
-            // Reiniciar selecci√≥n de cliente a Cliente General
+            // Reiniciar selecciÛn de cliente a Cliente General
             ClienteComboBox.SelectedIndex = 0;
 
-            // Habilitar m√©todo de pago y seleccionar efectivo
+            // Habilitar mÈtodo de pago y seleccionar efectivo
             MetodoPagoComboBox.IsEnabled = true;
             MetodoPagoComboBox.SelectedIndex = 0;
 
@@ -279,7 +445,7 @@ namespace PulperiaPOS
             VoucherTextBox.Clear();
             ComprobanteTextBox.Clear();
             MontoPagadoTextBox.Clear();
-            VueltoTextBox.Text = "‚Ç°0.00";
+            VueltoTextBox.Text = "¢0.00";
 
             // Ocultar paneles innecesarios
             VoucherPanel.Visibility = Visibility.Collapsed;
@@ -288,10 +454,10 @@ namespace PulperiaPOS
             VueltoPanel.Visibility = Visibility.Visible;
 
             // Saldos
-            SaldoClienteTextBlock.Text = "‚Ç°0.00";
-            SaldoRestanteTextBlock.Text = "‚Ç°0.00";
+            SaldoClienteTextBlock.Text = "¢0.00";
+            SaldoRestanteTextBlock.Text = "¢0.00";
 
-            // Enfocar nuevamente en la b√∫squeda
+            // Enfocar nuevamente en la b˙squeda
             BuscarProductoTextBox.Clear();
             BuscarProductoTextBox.Focus();
         }
@@ -300,7 +466,7 @@ namespace PulperiaPOS
         private void ActualizarTotal()
         {
             double total = productosEnVenta.Sum(p => p.Subtotal);
-            TotalVentaTextBlock.Text = $"‚Ç°{total:N2}";
+            TotalVentaTextBlock.Text = $"¢{total:N2}";
             ActualizarVisualSaldoCliente();
         }
 
@@ -317,12 +483,12 @@ namespace PulperiaPOS
             double montoPagado = 0;
             double vuelto = 0;
 
-            // Validaciones seg√∫n m√©todo de pago
+            // Validaciones seg˙n mÈtodo de pago
             if (metodoPagoSeleccionado == "Efectivo")
             {
                 if (!double.TryParse(MontoPagadoTextBox.Text, out montoPagado))
                 {
-                    MessageBox.Show("Por favor, ingrese un monto v√°lido.");
+                    MessageBox.Show("Por favor, ingrese un monto v·lido.");
                     return;
                 }
 
@@ -332,17 +498,17 @@ namespace PulperiaPOS
                     return;
                 }
 
-                if (!double.TryParse(VueltoTextBox.Text.Replace("‚Ç°", "").Trim(), out vuelto))
+                if (!double.TryParse(VueltoTextBox.Text.Replace("¢", "").Trim(), out vuelto))
                 {
-                    MessageBox.Show("Vuelto inv√°lido.");
+                    MessageBox.Show("Vuelto inv·lido.");
                     return;
                 }
             }
-            else if (metodoPagoSeleccionado == "D√≥lares")
+            else if (metodoPagoSeleccionado == "DÛlares")
             {
                 if (!double.TryParse(MontoPagadoTextBox.Text, out double montoDolares))
                 {
-                    MessageBox.Show("Por favor, ingrese un monto v√°lido en d√≥lares.");
+                    MessageBox.Show("Por favor, ingrese un monto v·lido en dÛlares.");
                     return;
                 }
 
@@ -352,7 +518,7 @@ namespace PulperiaPOS
 
                 if (montoPagado < totalVenta)
                 {
-                    MessageBox.Show("El monto en d√≥lares no es suficiente para cubrir el total de la venta.");
+                    MessageBox.Show("El monto en dÛlares no es suficiente para cubrir el total de la venta.");
                     return;
                 }
             }
@@ -361,7 +527,7 @@ namespace PulperiaPOS
             {
                 if (string.IsNullOrWhiteSpace(numeroVoucher))
                 {
-                    MessageBox.Show("Debe ingresar el n√∫mero de voucher para pagos con tarjeta.");
+                    MessageBox.Show("Debe ingresar el n˙mero de voucher para pagos con tarjeta.");
                     return;
                 }
             }
@@ -369,12 +535,12 @@ namespace PulperiaPOS
             {
                 if (string.IsNullOrWhiteSpace(numeroComprobante))
                 {
-                    MessageBox.Show("Debe ingresar el n√∫mero de SINPE para pagos por Sinpe.");
+                    MessageBox.Show("Debe ingresar el n˙mero de SINPE para pagos por Sinpe.");
                     return;
                 }
             }
 
-            if (MessageBox.Show($"¬øDesea confirmar esta venta por ‚Ç°{totalVenta:N2}?", "Confirmar Venta", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
+            if (MessageBox.Show($"øDesea confirmar esta venta por ¢{totalVenta:N2}?", "Confirmar Venta", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
                 return;
 
             try
@@ -382,7 +548,7 @@ namespace PulperiaPOS
                 using (var connection = DBConnection.GetConnection())
                 {
                     if (connection.State != System.Data.ConnectionState.Open)
-                        throw new Exception("La conexi√≥n no est√° abierta.");
+                        throw new Exception("La conexiÛn no est· abierta.");
 
                     using (var transaction = connection.BeginTransaction())
                     {
@@ -412,7 +578,7 @@ namespace PulperiaPOS
 
                             object result = cmdVenta.ExecuteScalar();
                             if (result == null || result == DBNull.Value)
-                                throw new Exception("No se pudo obtener el ID de la venta reci√©n insertada.");
+                                throw new Exception("No se pudo obtener el ID de la venta reciÈn insertada.");
 
                             facturaGenerada = Convert.ToInt64(result);
                         }
@@ -435,9 +601,9 @@ namespace PulperiaPOS
 
                         if (ImprimirReciboCheckBox != null && ImprimirReciboCheckBox.IsChecked == true)
                         {
-                            var lineas = productosEnVenta.Select(p => $"{p.Nombre} x{p.Cantidad} ‚Ç°{p.Subtotal:N2}").ToList();
-                            string totalTexto = $"‚Ç°{totalVenta:N2}";
-                            string vueltoTexto = vuelto > 0 ? $"‚Ç°{vuelto:N2}" : "";
+                            var lineas = productosEnVenta.Select(p => $"{p.Nombre} x{p.Cantidad} ¢{p.Subtotal:N2}").ToList();
+                            string totalTexto = $"¢{totalVenta:N2}";
+                            string vueltoTexto = vuelto > 0 ? $"¢{vuelto:N2}" : "";
                             string comprobanteTexto = !string.IsNullOrWhiteSpace(numeroComprobante) ? numeroComprobante : "";
                             string fechaHora = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
                             string printerName = new PrinterSettings().PrinterName;
@@ -447,7 +613,7 @@ namespace PulperiaPOS
 
                             RawPrinterHelper.ImprimirReciboPOS58(
                                 printerName,
-                                "PULPER√çA CRA",
+                                "PULPERÕA CRA",
                                 lineas,
                                 totalTexto,
                                 metodoPagoSeleccionado,
@@ -462,7 +628,7 @@ namespace PulperiaPOS
                     }
                 }
 
-                MessageBox.Show("‚úÖ Venta registrada correctamente.");
+                MessageBox.Show("? Venta registrada correctamente.");
                 ReiniciarFormularioVenta();
 
 
@@ -484,7 +650,7 @@ namespace PulperiaPOS
 
             if (ClienteComboBox.SelectedItem == null || MetodoPagoComboBox.SelectedItem == null)
             {
-                MessageBox.Show("Debe seleccionar un cliente y un m√©todo de pago.");
+                MessageBox.Show("Debe seleccionar un cliente y un mÈtodo de pago.");
                 return false;
             }
 
@@ -559,14 +725,14 @@ namespace PulperiaPOS
             {
                 if (clienteSeleccionado.nombre == "Cliente General")
                 {
-                    // Remover opci√≥n Saldo Cliente si existe
+                    // Remover opciÛn Saldo Cliente si existe
                     MetodoPagoComboBox.Items.Remove(saldoClienteItem);
 
                     MetodoPagoComboBox.IsEnabled = true;
                     MetodoPagoComboBox.SelectedIndex = 0;
 
-                    SaldoClienteTextBlock.Text = "‚Ç°0.00";
-                    SaldoRestanteTextBlock.Text = "‚Ç°0.00";
+                    SaldoClienteTextBlock.Text = "¢0.00";
+                    SaldoRestanteTextBlock.Text = "¢0.00";
 
                     VoucherTextBox.Clear();
                     ComprobanteTextBox.Clear();
@@ -577,11 +743,11 @@ namespace PulperiaPOS
                 }
                 else
                 {
-                    // Asegurar que la opci√≥n "Saldo Cliente" est√© presente
+                    // Asegurar que la opciÛn "Saldo Cliente" estÈ presente
                     if (!MetodoPagoComboBox.Items.Contains(saldoClienteItem))
                         MetodoPagoComboBox.Items.Add(saldoClienteItem);
 
-                    // Forzar selecci√≥n de "Saldo Cliente" y bloquear el cambio
+                    // Forzar selecciÛn de "Saldo Cliente" y bloquear el cambio
                     MetodoPagoComboBox.SelectedItem = saldoClienteItem;
                     MetodoPagoComboBox.IsEnabled = false;
 
@@ -590,13 +756,13 @@ namespace PulperiaPOS
                     double saldoCliente = ObtenerSaldoCliente(idCliente);
                     double saldoRestante = saldoCliente - totalVenta;
 
-                    SaldoClienteTextBlock.Text = $"‚Ç°{saldoCliente:N2}";
-                    SaldoRestanteTextBlock.Text = $"‚Ç°{saldoRestante:N2}";
+                    SaldoClienteTextBlock.Text = $"¢{saldoCliente:N2}";
+                    SaldoRestanteTextBlock.Text = $"¢{saldoRestante:N2}";
 
                     PagarButton.IsEnabled = saldoRestante >= 0;
                     if (saldoRestante < 0)
                     {
-                        MessageBox.Show("‚ö† El saldo del cliente no es suficiente para cubrir la venta.");
+                        MessageBox.Show("? El saldo del cliente no es suficiente para cubrir la venta.");
                     }
 
                     MetodoPagoComboBox_SelectionChanged(null, null);
@@ -612,6 +778,13 @@ namespace PulperiaPOS
 
         private double ObtenerSaldoCliente(int clienteId)
         {
+            if (FeatureFlags.UseVentasClienteSelectorApi &&
+                ClienteComboBox.SelectedItem is Cliente clienteSeleccionado &&
+                clienteSeleccionado.idCliente == clienteId)
+            {
+                return clienteSeleccionado.saldo;
+            }
+
             using var connection = DBConnection.GetConnection();
             string query = "SELECT saldo FROM cliente WHERE idCliente = @id";
             using var command = new SqlCommand(query, connection);
@@ -647,7 +820,7 @@ namespace PulperiaPOS
                     PagarButton.IsEnabled = !string.IsNullOrWhiteSpace(ComprobanteTextBox.Text);
                     break;
 
-                case "D√≥lares":
+                case "DÛlares":
                     // Verificar si ya se ha ingresado el tipo de cambio hoy
                     if (!TipoCambioHelper.ExisteTipoCambioParaHoy())
                     {
@@ -656,7 +829,7 @@ namespace PulperiaPOS
 
                         if (resultado != true)
                         {
-                            MessageBox.Show("Debe ingresar el tipo de cambio para continuar con pagos en d√≥lares.", "Aviso", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MessageBox.Show("Debe ingresar el tipo de cambio para continuar con pagos en dÛlares.", "Aviso", MessageBoxButton.OK, MessageBoxImage.Warning);
 
                             // Volver a efectivo
                             if (MetodoPagoComboBox.Items[0] is ComboBoxItem efectivoItem)
@@ -695,7 +868,7 @@ namespace PulperiaPOS
             string metodoPagoSeleccionado = (MetodoPagoComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
             double total = productosEnVenta.Sum(p => p.Subtotal);
 
-            if (metodoPagoSeleccionado == "D√≥lares")
+            if (metodoPagoSeleccionado == "DÛlares")
             {
                 if (double.TryParse(MontoPagadoTextBox.Text, out double montoDolares))
                 {
@@ -704,18 +877,18 @@ namespace PulperiaPOS
                         double pagadoColones = montoDolares * venta;
                         double vuelto = pagadoColones - total;
 
-                        VueltoTextBox.Text = vuelto < 0 ? "‚Ç°0.00" : $"‚Ç°{vuelto:N2}";
+                        VueltoTextBox.Text = vuelto < 0 ? "¢0.00" : $"¢{vuelto:N2}";
                         PagarButton.IsEnabled = vuelto >= 0;
                     }
                     else
                     {
-                        VueltoTextBox.Text = "‚Ç°0.00";
+                        VueltoTextBox.Text = "¢0.00";
                         PagarButton.IsEnabled = false;
                     }
                 }
                 else
                 {
-                    VueltoTextBox.Text = "‚Ç°0.00";
+                    VueltoTextBox.Text = "¢0.00";
                     PagarButton.IsEnabled = false;
                 }
             }
@@ -724,12 +897,12 @@ namespace PulperiaPOS
                 if (double.TryParse(MontoPagadoTextBox.Text, out double pagado))
                 {
                     double vuelto = pagado - total;
-                    VueltoTextBox.Text = vuelto < 0 ? "‚Ç°0.00" : $"‚Ç°{vuelto:N2}";
+                    VueltoTextBox.Text = vuelto < 0 ? "¢0.00" : $"¢{vuelto:N2}";
                     PagarButton.IsEnabled = vuelto >= 0;
                 }
                 else
                 {
-                    VueltoTextBox.Text = "‚Ç°0.00";
+                    VueltoTextBox.Text = "¢0.00";
                     PagarButton.IsEnabled = false;
                 }
             }
@@ -772,10 +945,10 @@ namespace PulperiaPOS
                 double saldoRestante = saldoCliente - totalVenta;
 
                 // Mostrar valores
-                SaldoClienteTextBlock.Text = $"‚Ç°{saldoCliente:N2}";
-                SaldoRestanteTextBlock.Text = $"‚Ç°{saldoRestante:N2}";
+                SaldoClienteTextBlock.Text = $"¢{saldoCliente:N2}";
+                SaldoRestanteTextBlock.Text = $"¢{saldoRestante:N2}";
 
-                // Habilitar o deshabilitar bot√≥n Pagar
+                // Habilitar o deshabilitar botÛn Pagar
                 PagarButton.IsEnabled = saldoRestante >= 0;
             }
         }
@@ -796,14 +969,14 @@ namespace PulperiaPOS
                 {
                     if (!int.TryParse(textBox.Text, out int nuevaCantidad) || nuevaCantidad <= 0)
                     {
-                        MessageBox.Show("La cantidad debe ser un n√∫mero mayor que cero.");
+                        MessageBox.Show("La cantidad debe ser un n˙mero mayor que cero.");
                         textBox.Text = producto.Cantidad.ToString();
                         return;
                     }
 
                     if (nuevaCantidad > producto.StockDisponible)
                     {
-                        MessageBox.Show($"No hay suficiente stock disponible. M√°ximo permitido: {producto.StockDisponible}");
+                        MessageBox.Show($"No hay suficiente stock disponible. M·ximo permitido: {producto.StockDisponible}");
                         textBox.Text = producto.StockDisponible.ToString();
                         return;
                     }
@@ -820,7 +993,7 @@ namespace PulperiaPOS
         }
         private void AbrirCajaDesdePOS58()
         {
-            byte[] abrirCaja = new byte[] { 0x1B, 0x70, 0x00, 0x3C, 0x78 }; // Comando est√°ndar ESC/POS
+            byte[] abrirCaja = new byte[] { 0x1B, 0x70, 0x00, 0x3C, 0x78 }; // Comando est·ndar ESC/POS
             bool ok = RawPrinterHelper.SendBytesToPrinter("POS-58", abrirCaja);
             if (!ok)
             {
@@ -842,7 +1015,7 @@ namespace PulperiaPOS
             // Cliente General
             ClienteComboBox.SelectedIndex = 0;
 
-            // M√©todo de Pago en Efectivo
+            // MÈtodo de Pago en Efectivo
             MetodoPagoComboBox.SelectedIndex = 0;
             MetodoPagoComboBox.IsEnabled = true;
 
@@ -850,7 +1023,7 @@ namespace PulperiaPOS
             VoucherTextBox.Text = "";
             ComprobanteTextBox.Text = "";
             MontoPagadoTextBox.Text = "";
-            VueltoTextBox.Text = "‚Ç°0.00";
+            VueltoTextBox.Text = "¢0.00";
 
             // Mostrar solo campos necesarios para efectivo
             VoucherPanel.Visibility = Visibility.Collapsed;
@@ -859,26 +1032,32 @@ namespace PulperiaPOS
             VueltoPanel.Visibility = Visibility.Visible;
 
             // Reset saldos
-            SaldoClienteTextBlock.Text = "‚Ç°0.00";
-            SaldoRestanteTextBlock.Text = "‚Ç°0.00";
+            SaldoClienteTextBlock.Text = "¢0.00";
+            SaldoRestanteTextBlock.Text = "¢0.00";
 
-            // Desactivar el checkbox de impresi√≥n
+            // Desactivar el checkbox de impresiÛn
             ImprimirReciboCheckBox.IsChecked = false;
 
-            // Bot√≥n de pagar activo
+            // BotÛn de pagar activo
             PagarButton.IsEnabled = true;
 
-            // Foco en el campo de b√∫squeda
+            // Foco en el campo de b˙squeda
             BuscarProductoTextBox.Clear();
             BuscarProductoTextBox.Focus();
         }
 
-        private void BuscarProductoTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        private async void BuscarProductoTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             string texto = BuscarProductoTextBox.Text.Trim();
             if (texto.Length < 2)
             {
                 SugerenciasPopup.IsOpen = false;
+                return;
+            }
+
+            if (FeatureFlags.UseVentasProductosApi)
+            {
+                await CargarSugerenciasProductosDesdeApiAsync(texto);
                 return;
             }
 
@@ -922,9 +1101,16 @@ namespace PulperiaPOS
                 AgregarProductoPorCodigo();
             }
         }
-        private void ClienteComboBox_KeyUp(object sender, KeyEventArgs e)
+        private async void ClienteComboBox_KeyUp(object sender, KeyEventArgs e)
         {
             string texto = ClienteComboBox.Text.ToLower().Trim();
+
+            if (FeatureFlags.UseVentasClienteSelectorApi)
+            {
+                await CargarClientesDesdeApiAsync(string.IsNullOrWhiteSpace(texto) ? null : texto);
+                ClienteComboBox.IsDropDownOpen = true;
+                return;
+            }
 
             if (string.IsNullOrWhiteSpace(texto))
             {

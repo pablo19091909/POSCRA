@@ -8,6 +8,10 @@ using POS.Api.Configuration;
 using POS.Api.Domain;
 using POS.Api.Health;
 using POS.Api.Infrastructure.Data;
+using POS.Api.Application.Clientes;
+using POS.Api.Application.Productos;
+using POS.Api.Infrastructure.Data.Clientes;
+using POS.Api.Infrastructure.Data.Productos;
 using POS.Api.Infrastructure.Logging;
 using POS.Api.Infrastructure.Security;
 
@@ -58,6 +62,10 @@ builder.Services.AddSingleton<IDatabaseConnectionFactory, SqlConnectionFactory>(
 builder.Services.AddScoped<IDatabaseHealthCheck, DatabaseHealthCheck>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
+builder.Services.AddScoped<IClienteService, ClienteService>();
+builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
+builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddSingleton<ILegacyPasswordVerifier, LegacySha256PasswordVerifier>();
 builder.Services.AddSingleton<IPermissionProvider, RolePermissionProvider>();

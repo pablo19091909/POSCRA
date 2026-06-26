@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Windows;
 using System.Diagnostics;
+using PulperiaPOS.ApiClients;
 using PulperiaPOS.DataAccess;
 
 namespace PulperiaPOS
@@ -15,6 +16,7 @@ namespace PulperiaPOS
         {
             base.OnStartup(e);
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            ApiSessionNavigationCoordinator.Subscribe();
 
             // Inicializar la app normalmente
             AzureConnectionTester.ProbarConexion();
