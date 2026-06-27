@@ -26,7 +26,10 @@ public sealed class ClienteRepository : IClienteRepository
             SELECT idCliente, nombre, saldo, comprobante, fecha_carga_saldo
             FROM cliente
             WHERE (@busqueda IS NULL OR LOWER(nombre) LIKE @busqueda)
-            ORDER BY nombre ASC, idCliente ASC
+            ORDER BY
+                CASE WHEN nombre = N'Cliente General' THEN 0 ELSE 1 END,
+                nombre ASC,
+                idCliente ASC
             OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;
             """;
 

@@ -12,6 +12,8 @@ using POS.Api.Application.Clientes;
 using POS.Api.Application.Productos;
 using POS.Api.Infrastructure.Data.Clientes;
 using POS.Api.Infrastructure.Data.Productos;
+using POS.Api.Application.Ventas;
+using POS.Api.Infrastructure.Data.Ventas;
 using POS.Api.Infrastructure.Logging;
 using POS.Api.Infrastructure.Security;
 
@@ -48,6 +50,8 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSection("Authentication"));
+builder.Services.Configure<FeatureFlagsOptions>(builder.Configuration.GetSection("FeatureFlags"));
+builder.Services.Configure<EnvironmentSafetyOptions>(builder.Configuration.GetSection("EnvironmentSafety"));
 builder.Services.Configure<JwtOptions>(options =>
 {
     builder.Configuration.GetSection("Jwt").Bind(options);
@@ -66,6 +70,10 @@ builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
+builder.Services.AddScoped<IVentaRepository, VentaRepository>();
+builder.Services.AddScoped<IDatabaseEnvironmentSafetyService, DatabaseEnvironmentSafetyService>();
+builder.Services.AddScoped<IIdempotenciaVentaService, IdempotenciaVentaService>();
+builder.Services.AddScoped<IVentaService, VentaService>();
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddSingleton<ILegacyPasswordVerifier, LegacySha256PasswordVerifier>();
 builder.Services.AddSingleton<IPermissionProvider, RolePermissionProvider>();

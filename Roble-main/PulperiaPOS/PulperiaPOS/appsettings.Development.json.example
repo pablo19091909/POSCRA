@@ -7,7 +7,8 @@
     "UseApiLogin": false,
     "UseClientesApi": false,
     "UseVentasClienteSelectorApi": false,
-    "UseVentasProductosApi": false
+    "UseVentasProductosApi": false,
+    "UseVentasApiWrite": false
   },
   "ConnectionStrings": {
     "PosDatabase": "Server=SERVIDOR;Database=BASE;User Id=USUARIO;Password=CAMBIAR_ESTE_VALOR;Encrypt=True;TrustServerCertificate=False;"

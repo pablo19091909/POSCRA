@@ -4,6 +4,9 @@ POS.Api/appsettings.Development.json
 appsettings.Production.json
 POS.Api/appsettings.Production.json
 **/appsettings.Production.json
+appsettings.Test.json
+POS.Api/appsettings.Test.json
+**/appsettings.Test.json
 .env
 *.bak
 *.log

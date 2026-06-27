@@ -37,5 +37,14 @@ namespace PulperiaPOS.Configuration
                 return bool.TryParse(configuredValue, out var enabled) && enabled;
             }
         }
+
+        public static bool UseVentasApiWrite
+        {
+            get
+            {
+                var configuredValue = AppConfiguration.Current["FeatureFlags:UseVentasApiWrite"];
+                return bool.TryParse(configuredValue, out var enabled) && enabled;
+            }
+        }
     }
 }

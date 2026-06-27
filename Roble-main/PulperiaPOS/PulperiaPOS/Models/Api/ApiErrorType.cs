@@ -7,6 +7,7 @@ namespace PulperiaPOS.Models.Api
         Unauthorized,
         SessionExpired,
         Forbidden,
+        Conflict,
         RateLimited,
         Timeout,
         Network,

@@ -73,3 +73,4 @@ D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\obj\Release\net8.0\POS.Api.genruntimeco
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\obj\Release\net8.0\ref\POS.Api.dll
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\BCrypt.Net-Next.dll
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\appsettings.Test.json

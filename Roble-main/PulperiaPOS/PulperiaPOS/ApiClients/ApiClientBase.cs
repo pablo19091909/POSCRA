@@ -122,6 +122,10 @@ namespace PulperiaPOS.ApiClients
                     ApiErrorType.Forbidden,
                     ApiSafeMessages.Forbidden,
                     traceId),
+                HttpStatusCode.Conflict => ApiRequestResult<T>.Failed(
+                    ApiErrorType.Conflict,
+                    "La venta ya está en proceso o la solicitud no coincide con el reintento anterior.",
+                    traceId),
                 (HttpStatusCode)429 => ApiRequestResult<T>.Failed(
                     ApiErrorType.RateLimited,
                     ApiSafeMessages.RateLimited,

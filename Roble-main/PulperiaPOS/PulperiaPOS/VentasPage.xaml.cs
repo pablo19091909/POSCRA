@@ -4,12 +4,15 @@ using PulperiaPOS.DataAccess;
 using PulperiaPOS.Models.Api;
 using PulperiaPOS.Models.Clientes;
 using PulperiaPOS.Models.Productos;
+using PulperiaPOS.Models.Ventas;
 using PulperiaPOS.Views;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Drawing.Printing;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -24,6 +27,8 @@ namespace PulperiaPOS
     {
         private List<ProductoVenta> productosEnVenta = new();
         private bool limpiarTextoCliente = true;
+        private readonly VentaSubmissionCoordinator ventaSubmissionCoordinator = new();
+        private bool ventaApiEnProceso;
 
 
         public VentasPage()
@@ -31,12 +36,20 @@ namespace PulperiaPOS
             InitializeComponent();
             CargarClientes();
             CargarMetodoPago();
+            AplicarModoVentaApi();
             ActualizarTotal();
             this.Loaded += VentasPage_Loaded;
 
 
         }
 
+        private void AplicarModoVentaApi()
+        {
+            if (VentaApiModeTextBlock != null)
+            {
+                VentaApiModeTextBlock.Visibility = FeatureFlags.UseVentasApiWrite ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
         private List<Cliente> todosLosClientes = new List<Cliente>();
         public List<Cliente> ClientesFiltrados { get; set; } = new List<Cliente>();
 
@@ -77,10 +90,7 @@ namespace PulperiaPOS
                 MessageBox.Show($"Error al cargar los clientes: {ex.Message}");
             }
 
-            if (!todosLosClientes.Any(c => c.nombre == "Cliente General"))
-            {
-                todosLosClientes.Insert(0, new Cliente { idCliente = 0, nombre = "Cliente General" });
-            }
+            AsegurarClienteGeneralPrimero(todosLosClientes);
 
             ClientesFiltrados = new List<Cliente>(todosLosClientes);
             ClienteComboBox.ItemsSource = ClientesFiltrados;
@@ -113,16 +123,25 @@ namespace PulperiaPOS
                 });
             }
 
-            if (!todosLosClientes.Any(c => c.nombre == "Cliente General"))
-            {
-                todosLosClientes.Insert(0, new Cliente { idCliente = 0, nombre = "Cliente General" });
-            }
+            AsegurarClienteGeneralPrimero(todosLosClientes);
 
             ClientesFiltrados = new List<Cliente>(todosLosClientes);
             ClienteComboBox.ItemsSource = ClientesFiltrados;
             ClienteComboBox.SelectedIndex = string.IsNullOrWhiteSpace(busqueda) && ClientesFiltrados.Count > 0 ? 0 : -1;
         }
 
+        private static void AsegurarClienteGeneralPrimero(List<Cliente> clientes)
+        {
+            var clienteGeneral = clientes.FirstOrDefault(c => c.nombre == "Cliente General");
+            if (clienteGeneral is null)
+            {
+                clientes.Insert(0, new Cliente { idCliente = 0, nombre = "Cliente General" });
+                return;
+            }
+
+            clientes.Remove(clienteGeneral);
+            clientes.Insert(0, clienteGeneral);
+        }
         private static void MostrarErrorClientesApi<T>(ApiRequestResult<T> result)
         {
             if (result.ErrorType is ApiErrorType.Unauthorized or ApiErrorType.SessionExpired)
@@ -470,10 +489,21 @@ namespace PulperiaPOS
             ActualizarVisualSaldoCliente();
         }
 
-        private void Pagar_Click(object sender, RoutedEventArgs e)
+        private async void Pagar_Click(object sender, RoutedEventArgs e)
         {
             if (!ValidarVenta()) return;
 
+            if (FeatureFlags.UseVentasApiWrite)
+            {
+                await PagarConApiAsync();
+                return;
+            }
+
+            PagarConSql();
+        }
+
+        private void PagarConSql()
+        {
             string clienteSeleccionado = ClienteComboBox.SelectedItem.ToString();
             string metodoPagoSeleccionado = (MetodoPagoComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
             double totalVenta = productosEnVenta.Sum(p => p.Subtotal);
@@ -640,6 +670,221 @@ namespace PulperiaPOS
         }
 
 
+        private async Task PagarConApiAsync()
+        {
+            if (ventaApiEnProceso)
+            {
+                return;
+            }
+
+            if (!TryBuildCrearVentaRequest(out var request, out var intentFingerprint, out var totalVisual))
+            {
+                return;
+            }
+
+            if (MessageBox.Show($"¿Desea confirmar esta venta por ¢{totalVisual:N2}?", "Confirmar Venta API", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
+                return;
+
+            var pendingSubmission = ventaSubmissionCoordinator.GetOrCreate(intentFingerprint);
+            request = request with { IdempotencyKey = pendingSubmission.IdempotencyKey };
+
+            ventaApiEnProceso = true;
+            pendingSubmission.MarkInProgress();
+            var previousContent = PagarButton.Content;
+            PagarButton.IsEnabled = false;
+            PagarButton.Content = "Procesando...";
+
+            try
+            {
+                using var client = new VentasApiClient();
+                var result = await client.CrearVentaAsync(request);
+
+                if (!result.Success || result.Data is null)
+                {
+                    pendingSubmission.MarkReadyForRetry();
+                    MostrarErrorVentaApi(result);
+                    return;
+                }
+
+                if (ImprimirReciboCheckBox != null && ImprimirReciboCheckBox.IsChecked == true)
+                {
+                    ImprimirReciboVentaApi(result.Data);
+                }
+
+                ventaSubmissionCoordinator.Clear();
+                MessageBox.Show(
+                    $"Venta API registrada correctamente.\nFactura: {result.Data.Factura}\nTotal: ¢{result.Data.Total:N2}\nVuelto: ¢{(result.Data.Vuelto ?? 0):N2}",
+                    "Venta API",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                ReiniciarFormularioVenta();
+            }
+            finally
+            {
+                ventaApiEnProceso = false;
+                PagarButton.Content = previousContent;
+                PagarButton.IsEnabled = true;
+            }
+        }
+
+        private bool TryBuildCrearVentaRequest(out CrearVentaRequest request, out string intentFingerprint, out double totalVisual)
+        {
+            request = default!;
+            intentFingerprint = string.Empty;
+            totalVisual = productosEnVenta.Sum(p => p.Subtotal);
+
+            if (ClienteComboBox.SelectedItem is not Cliente cliente || cliente.idCliente < 0)
+            {
+                MessageBox.Show("Seleccione un cliente válido para usar venta API.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (productosEnVenta.Count == 0 || productosEnVenta.Any(p => p.Cantidad <= 0))
+            {
+                MessageBox.Show("La venta API requiere productos con cantidades válidas.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            string metodoPagoSeleccionado = (MetodoPagoComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty;
+            string metodoApi = MapMetodoPagoApi(metodoPagoSeleccionado);
+            if (string.IsNullOrWhiteSpace(metodoApi))
+            {
+                MessageBox.Show("El método de pago seleccionado no está soportado por venta API V1.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            decimal? montoRecibido = null;
+            string? referencia = null;
+            string? voucher = null;
+
+            if (metodoApi == "Efectivo")
+            {
+                if (!decimal.TryParse(MontoPagadoTextBox.Text, out var montoEfectivo))
+                {
+                    MessageBox.Show("Por favor, ingrese un monto válido.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+
+                montoRecibido = montoEfectivo;
+            }
+            else if (metodoApi == "Tarjeta")
+            {
+                voucher = VoucherTextBox.Text.Trim();
+                if (string.IsNullOrWhiteSpace(voucher))
+                {
+                    MessageBox.Show("Debe ingresar el número de voucher para pagos con tarjeta.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+            }
+            else if (metodoApi == "Sinpe")
+            {
+                referencia = ComprobanteTextBox.Text.Trim();
+                if (string.IsNullOrWhiteSpace(referencia))
+                {
+                    MessageBox.Show("Debe ingresar el número de SINPE para pagos por Sinpe.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+            }
+            else if (metodoApi == "SaldoCliente" && cliente.saldo < totalVisual)
+            {
+                MessageBox.Show("El saldo del cliente no es suficiente para completar la venta API.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            var items = productosEnVenta
+                .Select(p => new VentaItemRequest(p.IdProducto, p.Cantidad))
+                .ToList();
+
+            var pago = new PagoVentaRequest(
+                metodoApi,
+                montoRecibido,
+                referencia,
+                voucher,
+                "CRC",
+                null);
+
+            intentFingerprint = BuildVentaIntentFingerprint(cliente.idCliente, items, pago);
+            request = new CrearVentaRequest(
+                cliente.idCliente,
+                items,
+                pago,
+                null,
+                null,
+                null,
+                referencia,
+                voucher);
+            return true;
+        }
+
+        private static string BuildVentaIntentFingerprint(int clienteId, IReadOnlyCollection<VentaItemRequest> items, PagoVentaRequest pago)
+        {
+            var builder = new StringBuilder();
+            builder.Append(clienteId).Append('|');
+            foreach (var item in items.OrderBy(i => i.ProductoId, StringComparer.Ordinal))
+            {
+                builder.Append(item.ProductoId).Append(':').Append(item.Cantidad).Append('|');
+            }
+
+            builder.Append(pago.MetodoPago).Append('|')
+                .Append(pago.MontoRecibido?.ToString("0.00")).Append('|')
+                .Append(pago.Referencia).Append('|')
+                .Append(pago.Voucher);
+
+            return builder.ToString();
+        }
+
+        private static string MapMetodoPagoApi(string metodoPagoSeleccionado)
+        {
+            return metodoPagoSeleccionado switch
+            {
+                "Efectivo" => "Efectivo",
+                "Tarjeta" => "Tarjeta",
+                "Sinpe" => "Sinpe",
+                "Saldo Cliente" => "SaldoCliente",
+                _ => string.Empty
+            };
+        }
+
+        private static void MostrarErrorVentaApi<T>(ApiRequestResult<T> result)
+        {
+            var message = result.ErrorType switch
+            {
+                ApiErrorType.ServiceError => "Venta API no está disponible o está deshabilitada. No se registró la venta.",
+                ApiErrorType.Timeout or ApiErrorType.Network => "No se pudo confirmar la venta API. Puede reintentar la misma venta sin modificar el carrito.",
+                ApiErrorType.BadRequest => "La API rechazó la venta. Revise los datos e intente nuevamente.",
+                ApiErrorType.Forbidden => "El usuario actual no tiene permiso para crear ventas por API.",
+                ApiErrorType.RateLimited => "Demasiados intentos. Espere un momento e intente de nuevo.",
+                _ => result.Message
+            };
+
+            MessageBox.Show(message, "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private void ImprimirReciboVentaApi(VentaResponse venta)
+        {
+            var lineas = venta.Items
+                .Select(p => $"{p.Nombre} x{p.Cantidad} ¢{p.Subtotal:N2}")
+                .ToList();
+            string totalTexto = $"¢{venta.Total:N2}";
+            string vueltoTexto = venta.Vuelto.HasValue && venta.Vuelto.Value > 0 ? $"¢{venta.Vuelto.Value:N2}" : "";
+            string fechaHora = venta.FechaHoraUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+            string printerName = new PrinterSettings().PrinterName;
+            string nombreCajero = UserSession.NombreUsuario ?? "Desconocido";
+            string nombreCliente = ClienteComboBox.SelectedItem is Cliente cliente ? cliente.nombre : "";
+
+            RawPrinterHelper.ImprimirReciboPOS58(
+                printerName,
+                "PULPERÍA CRA",
+                lineas,
+                totalTexto,
+                venta.MetodoPago,
+                vueltoTexto,
+                string.Empty,
+                fechaHora,
+                venta.Factura.ToString(),
+                nombreCliente,
+                nombreCajero);
+        }
         private bool ValidarVenta()
         {
             if (productosEnVenta.Count == 0)
@@ -747,9 +992,21 @@ namespace PulperiaPOS
                     if (!MetodoPagoComboBox.Items.Contains(saldoClienteItem))
                         MetodoPagoComboBox.Items.Add(saldoClienteItem);
 
-                    // Forzar selección de "Saldo Cliente" y bloquear el cambio
-                    MetodoPagoComboBox.SelectedItem = saldoClienteItem;
-                    MetodoPagoComboBox.IsEnabled = false;
+                    // En modo API, el operador debe poder elegir Efectivo, Tarjeta, Sinpe o Saldo Cliente.
+                    if (FeatureFlags.UseVentasApiWrite)
+                    {
+                        MetodoPagoComboBox.IsEnabled = true;
+                        if (MetodoPagoComboBox.SelectedItem == null || MetodoPagoComboBox.SelectedItem == saldoClienteItem)
+                        {
+                            MetodoPagoComboBox.SelectedIndex = 0;
+                        }
+                    }
+                    else
+                    {
+                        // Flujo SQL historico: forzar seleccion de "Saldo Cliente" y bloquear el cambio.
+                        MetodoPagoComboBox.SelectedItem = saldoClienteItem;
+                        MetodoPagoComboBox.IsEnabled = false;
+                    }
 
                     // Obtener saldos
                     int idCliente = clienteSeleccionado.idCliente;
@@ -759,10 +1016,13 @@ namespace PulperiaPOS
                     SaldoClienteTextBlock.Text = $"¢{saldoCliente:N2}";
                     SaldoRestanteTextBlock.Text = $"¢{saldoRestante:N2}";
 
-                    PagarButton.IsEnabled = saldoRestante >= 0;
-                    if (saldoRestante < 0)
+                    if (!FeatureFlags.UseVentasApiWrite)
                     {
-                        MessageBox.Show("? El saldo del cliente no es suficiente para cubrir la venta.");
+                        PagarButton.IsEnabled = saldoRestante >= 0;
+                        if (saldoRestante < 0)
+                        {
+                            MessageBox.Show("? El saldo del cliente no es suficiente para cubrir la venta.");
+                        }
                     }
 
                     MetodoPagoComboBox_SelectionChanged(null, null);
@@ -776,6 +1036,34 @@ namespace PulperiaPOS
 
 
 
+        private bool ValidarSaldoClienteApiSeleccionado()
+        {
+            if (!FeatureFlags.UseVentasApiWrite)
+            {
+                return true;
+            }
+
+            string metodoPagoSeleccionado = (MetodoPagoComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty;
+            if (metodoPagoSeleccionado != "Saldo Cliente" || ClienteComboBox.SelectedItem is not Cliente clienteSeleccionado)
+            {
+                return true;
+            }
+
+            double totalVenta = productosEnVenta.Sum(p => p.Subtotal);
+            double saldoRestante = clienteSeleccionado.saldo - totalVenta;
+            SaldoClienteTextBlock.Text = $"¢{clienteSeleccionado.saldo:N2}";
+            SaldoRestanteTextBlock.Text = $"¢{saldoRestante:N2}";
+
+            if (saldoRestante < 0)
+            {
+                PagarButton.IsEnabled = false;
+                MessageBox.Show("El saldo del cliente no es suficiente para completar la venta API.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            PagarButton.IsEnabled = true;
+            return true;
+        }
         private double ObtenerSaldoCliente(int clienteId)
         {
             if (FeatureFlags.UseVentasClienteSelectorApi &&
@@ -799,6 +1087,21 @@ namespace PulperiaPOS
         private void MetodoPagoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             string metodoPagoSeleccionado = (MetodoPagoComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
+
+            if (FeatureFlags.UseVentasApiWrite && metodoPagoSeleccionado == "Dólares")
+            {
+                MessageBox.Show("Dólares no está soportado por venta API V1.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                if (MetodoPagoComboBox.Items[0] is ComboBoxItem efectivoItem)
+                {
+                    MetodoPagoComboBox.SelectedItem = efectivoItem;
+                }
+                return;
+            }
+
+            if (metodoPagoSeleccionado == "Saldo Cliente" && !ValidarSaldoClienteApiSeleccionado())
+            {
+                return;
+            }
 
             switch (metodoPagoSeleccionado)
             {
@@ -846,7 +1149,27 @@ namespace PulperiaPOS
                     PagarButton.IsEnabled = true;
                     break;
 
-                default: // Efectivo o Saldo Cliente
+                case "Saldo Cliente":
+                    VoucherPanel.Visibility = Visibility.Collapsed;
+                    ComprobantePanel.Visibility = Visibility.Collapsed;
+                    VoucherTextBox.Clear();
+                    ComprobanteTextBox.Clear();
+                    if (FeatureFlags.UseVentasApiWrite)
+                    {
+                        MontoPagadoPanel.Visibility = Visibility.Collapsed;
+                        VueltoPanel.Visibility = Visibility.Collapsed;
+                        MontoPagadoTextBox.Clear();
+                        VueltoTextBox.Text = "¢0.00";
+                    }
+                    else
+                    {
+                        MontoPagadoPanel.Visibility = Visibility.Visible;
+                        VueltoPanel.Visibility = Visibility.Visible;
+                    }
+                    PagarButton.IsEnabled = true;
+                    break;
+
+                default: // Efectivo
                     VoucherPanel.Visibility = Visibility.Collapsed;
                     ComprobantePanel.Visibility = Visibility.Collapsed;
                     MontoPagadoPanel.Visibility = Visibility.Visible;
@@ -866,6 +1189,16 @@ namespace PulperiaPOS
         private void CalcularVuelto(object sender, TextChangedEventArgs e)
         {
             string metodoPagoSeleccionado = (MetodoPagoComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
+
+            if (FeatureFlags.UseVentasApiWrite && metodoPagoSeleccionado == "Dólares")
+            {
+                MessageBox.Show("Dólares no está soportado por venta API V1.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                if (MetodoPagoComboBox.Items[0] is ComboBoxItem efectivoItem)
+                {
+                    MetodoPagoComboBox.SelectedItem = efectivoItem;
+                }
+                return;
+            }
             double total = productosEnVenta.Sum(p => p.Subtotal);
 
             if (metodoPagoSeleccionado == "Dólares")
