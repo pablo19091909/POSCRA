@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PulperiaPOS")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+629f246b2d171b289621c3adad501f0182e54de7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1774a84f0c3bb83c624d26dded29cb0f75790883")]
 [assembly: System.Reflection.AssemblyProductAttribute("PulperiaPOS")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PulperiaPOS")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

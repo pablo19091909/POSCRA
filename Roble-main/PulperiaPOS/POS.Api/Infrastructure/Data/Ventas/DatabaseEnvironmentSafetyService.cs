@@ -20,6 +20,16 @@ public sealed class DatabaseEnvironmentSafetyService : IDatabaseEnvironmentSafet
 
     public async Task<bool> CanWriteVentasAsync(CancellationToken cancellationToken)
     {
+        return await CanWriteAsync(cancellationToken);
+    }
+
+    public async Task<bool> CanWriteCajaAsync(CancellationToken cancellationToken)
+    {
+        return await CanWriteAsync(cancellationToken);
+    }
+
+    private async Task<bool> CanWriteAsync(CancellationToken cancellationToken)
+    {
         if (!options.BlockWritesUnlessDatabaseEnvironmentMatches)
         {
             return true;
