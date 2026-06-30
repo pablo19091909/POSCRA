@@ -18,6 +18,7 @@ namespace PulperiaPOS.Views
             InitializeComponent();
             CargarRetiros();
             CalcularDineroEnCaja();
+            _ = CajaApiReadStatusViewHelper.LoadAsync(txtCajaApiStatus, nameof(RetirosCajaPage));
         }
 
         private void RegistrarRetiro_Click(object sender, RoutedEventArgs e)

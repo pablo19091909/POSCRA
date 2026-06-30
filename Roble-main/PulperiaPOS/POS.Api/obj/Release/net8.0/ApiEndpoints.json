@@ -62,6 +62,193 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "POS.Api.Controllers.CajaController",
+    "Method": "RegistrarIngreso",
+    "RelativePath": "api/caja/ingresos",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "POS.Api.Contracts.Caja.RegistrarIngresoCajaRequest",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "POS.Api.Contracts.Caja.MovimientoCajaResponse",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "POS.Api.Controllers.CajaController",
+    "Method": "RegistrarRetiro",
+    "RelativePath": "api/caja/retiros",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "POS.Api.Contracts.Caja.RegistrarRetiroCajaRequest",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "POS.Api.Contracts.Caja.MovimientoCajaResponse",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "POS.Api.Controllers.CajaController",
+    "Method": "CerrarTurno",
+    "RelativePath": "api/caja/turnos/{idTurno}/cerrar",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idTurno",
+        "Type": "System.Int64",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "POS.Api.Contracts.Caja.CerrarCajaTurnoRequest",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "POS.Api.Contracts.Caja.CierreCajaResponse",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "POS.Api.Controllers.CajaController",
+    "Method": "GetMovimientos",
+    "RelativePath": "api/caja/turnos/{idTurno}/movimientos",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idTurno",
+        "Type": "System.Int64",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IReadOnlyCollection\u00601[[POS.Api.Contracts.Caja.MovimientoCajaResponse, POS.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "POS.Api.Controllers.CajaController",
+    "Method": "GetPreCierre",
+    "RelativePath": "api/caja/turnos/{idTurno}/pre-cierre",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idTurno",
+        "Type": "System.Int64",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "POS.Api.Contracts.Caja.PreCierreCajaResponse",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "POS.Api.Controllers.CajaController",
+    "Method": "GetTurnoAbierto",
+    "RelativePath": "api/caja/turnos/abierto",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "cajaCodigo",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "POS.Api.Contracts.Caja.CajaTurnoResponse",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "POS.Api.Controllers.CajaController",
+    "Method": "AbrirTurno",
+    "RelativePath": "api/caja/turnos/abrir",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "POS.Api.Contracts.Caja.AbrirCajaTurnoRequest",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "POS.Api.Contracts.Caja.CajaTurnoResponse",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
     "ContainingType": "POS.Api.Controllers.ClientesController",
     "Method": "GetClientes",
     "RelativePath": "api/clientes",

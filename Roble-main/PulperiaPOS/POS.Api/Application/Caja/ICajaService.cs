@@ -19,6 +19,7 @@ public interface ICajaService
     Task<CajaServiceResult<CajaTurnoResponse>> AbrirTurnoAsync(
         AbrirCajaTurnoRequest? request,
         int usuarioId,
+        string? idempotencyKey,
         CancellationToken cancellationToken);
 
     Task<CajaServiceResult<MovimientoCajaResponse>> RegistrarIngresoAsync(
@@ -30,11 +31,13 @@ public interface ICajaService
     Task<CajaServiceResult<MovimientoCajaResponse>> RegistrarRetiroAsync(
         RegistrarRetiroCajaRequest? request,
         int usuarioId,
+        string? idempotencyKey,
         CancellationToken cancellationToken);
 
     Task<CajaServiceResult<CierreCajaResponse>> CerrarTurnoAsync(
         long idTurno,
         CerrarCajaTurnoRequest? request,
         int usuarioId,
+        string? idempotencyKeyValue,
         CancellationToken cancellationToken);
 }

@@ -104,6 +104,336 @@
         }
       }
     },
+    "/api/caja/turnos/abierto": {
+      "get": {
+        "tags": [
+          "Caja"
+        ],
+        "parameters": [
+          {
+            "name": "cajaCodigo",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CajaTurnoResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CajaTurnoResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CajaTurnoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/caja/turnos/abrir": {
+      "post": {
+        "tags": [
+          "Caja"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbrirCajaTurnoRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbrirCajaTurnoRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbrirCajaTurnoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CajaTurnoResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CajaTurnoResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CajaTurnoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/caja/ingresos": {
+      "post": {
+        "tags": [
+          "Caja"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarIngresoCajaRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarIngresoCajaRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarIngresoCajaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovimientoCajaResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovimientoCajaResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovimientoCajaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/caja/retiros": {
+      "post": {
+        "tags": [
+          "Caja"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarRetiroCajaRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarRetiroCajaRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarRetiroCajaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovimientoCajaResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovimientoCajaResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovimientoCajaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/caja/turnos/{idTurno}/pre-cierre": {
+      "get": {
+        "tags": [
+          "Caja"
+        ],
+        "parameters": [
+          {
+            "name": "idTurno",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreCierreCajaResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreCierreCajaResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreCierreCajaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/caja/turnos/{idTurno}/cerrar": {
+      "post": {
+        "tags": [
+          "Caja"
+        ],
+        "parameters": [
+          {
+            "name": "idTurno",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CerrarCajaTurnoRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CerrarCajaTurnoRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CerrarCajaTurnoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CierreCajaResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CierreCajaResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CierreCajaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/caja/turnos/{idTurno}/movimientos": {
+      "get": {
+        "tags": [
+          "Caja"
+        ],
+        "parameters": [
+          {
+            "name": "idTurno",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MovimientoCajaResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MovimientoCajaResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MovimientoCajaResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/clientes": {
       "get": {
         "tags": [
@@ -434,6 +764,158 @@
   },
   "components": {
     "schemas": {
+      "AbrirCajaTurnoRequest": {
+        "type": "object",
+        "properties": {
+          "cajaCodigo": {
+            "type": "string",
+            "nullable": true
+          },
+          "fondoInicial": {
+            "type": "number",
+            "format": "double"
+          },
+          "observacion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CajaTurnoResponse": {
+        "type": "object",
+        "properties": {
+          "idTurno": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cajaCodigo": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "type": "string",
+            "nullable": true
+          },
+          "usuarioAperturaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "usuarioCierreId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "aperturaUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cierreUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "fondoInicial": {
+            "type": "number",
+            "format": "double"
+          },
+          "efectivoEsperado": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "efectivoContado": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "diferencia": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "observacionApertura": {
+            "type": "string",
+            "nullable": true
+          },
+          "observacionCierre": {
+            "type": "string",
+            "nullable": true
+          },
+          "cierreCajaId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "rowVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CerrarCajaTurnoRequest": {
+        "type": "object",
+        "properties": {
+          "efectivoContado": {
+            "type": "number",
+            "format": "double"
+          },
+          "observacion": {
+            "type": "string",
+            "nullable": true
+          },
+          "rowVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CierreCajaResponse": {
+        "type": "object",
+        "properties": {
+          "idTurno": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cajaCodigo": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "type": "string",
+            "nullable": true
+          },
+          "efectivoEsperado": {
+            "type": "number",
+            "format": "double"
+          },
+          "efectivoContado": {
+            "type": "number",
+            "format": "double"
+          },
+          "diferencia": {
+            "type": "number",
+            "format": "double"
+          },
+          "cierreUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cierreDiferenciaCreado": {
+            "type": "boolean"
+          },
+          "resumen": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResumenMovimientoCajaResponse"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ClienteListItemResponse": {
         "type": "object",
         "properties": {
@@ -603,6 +1085,81 @@
         },
         "additionalProperties": false
       },
+      "MovimientoCajaResponse": {
+        "type": "object",
+        "properties": {
+          "idMovimiento": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "idTurno": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "tipoMovimiento": {
+            "type": "string",
+            "nullable": true
+          },
+          "origen": {
+            "type": "string",
+            "nullable": true
+          },
+          "monto": {
+            "type": "number",
+            "format": "double"
+          },
+          "moneda": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaHoraUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usuarioId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "factura": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "pagoId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "ingresoCajaId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "retiroCajaId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "referencia": {
+            "type": "string",
+            "nullable": true
+          },
+          "observacion": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "type": "string",
+            "nullable": true
+          },
+          "reversaDeMovimientoId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PagoVentaRequest": {
         "type": "object",
         "properties": {
@@ -668,6 +1225,43 @@
         },
         "additionalProperties": false
       },
+      "PreCierreCajaResponse": {
+        "type": "object",
+        "properties": {
+          "idTurno": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cajaCodigo": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "type": "string",
+            "nullable": true
+          },
+          "aperturaUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "efectivoEsperado": {
+            "type": "number",
+            "format": "double"
+          },
+          "rowVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "resumen": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResumenMovimientoCajaResponse"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ProductoVentaListItemResponse": {
         "type": "object",
         "properties": {
@@ -714,6 +1308,68 @@
           },
           "disponible": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegistrarIngresoCajaRequest": {
+        "type": "object",
+        "properties": {
+          "cajaCodigo": {
+            "type": "string",
+            "nullable": true
+          },
+          "monto": {
+            "type": "number",
+            "format": "double"
+          },
+          "motivo": {
+            "type": "string",
+            "nullable": true
+          },
+          "referencia": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegistrarRetiroCajaRequest": {
+        "type": "object",
+        "properties": {
+          "cajaCodigo": {
+            "type": "string",
+            "nullable": true
+          },
+          "monto": {
+            "type": "number",
+            "format": "double"
+          },
+          "motivo": {
+            "type": "string",
+            "nullable": true
+          },
+          "referencia": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResumenMovimientoCajaResponse": {
+        "type": "object",
+        "properties": {
+          "tipoMovimiento": {
+            "type": "string",
+            "nullable": true
+          },
+          "cantidad": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false

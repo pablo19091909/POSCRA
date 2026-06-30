@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -37,6 +38,7 @@ namespace PulperiaPOS.ApiClients
             string relativePath,
             bool requiresAuthentication,
             object? body = null,
+            IReadOnlyDictionary<string, string>? headers = null,
             CancellationToken cancellationToken = default)
         {
             if (requiresAuthentication && !TryApplyBearerToken())
@@ -53,6 +55,14 @@ namespace PulperiaPOS.ApiClients
                 if (body is not null)
                 {
                     request.Content = JsonContent.Create(body, options: JsonOptions);
+                }
+
+                if (headers is not null)
+                {
+                    foreach (var header in headers)
+                    {
+                        request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                    }
                 }
 
                 using var response = await HttpClient.SendAsync(request, cancellationToken);
@@ -121,6 +131,10 @@ namespace PulperiaPOS.ApiClients
                 HttpStatusCode.Forbidden => ApiRequestResult<T>.Failed(
                     ApiErrorType.Forbidden,
                     ApiSafeMessages.Forbidden,
+                    traceId),
+                HttpStatusCode.NotFound => ApiRequestResult<T>.Failed(
+                    ApiErrorType.NotFound,
+                    "El recurso solicitado no fue encontrado.",
                     traceId),
                 HttpStatusCode.Conflict => ApiRequestResult<T>.Failed(
                     ApiErrorType.Conflict,

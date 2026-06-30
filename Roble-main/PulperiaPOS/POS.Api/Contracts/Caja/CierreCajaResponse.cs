@@ -7,4 +7,6 @@ public sealed record CierreCajaResponse(
     decimal EfectivoEsperado,
     decimal EfectivoContado,
     decimal Diferencia,
-    DateTimeOffset CierreUtc);
+    DateTimeOffset CierreUtc,
+    bool CierreDiferenciaCreado,
+    IReadOnlyCollection<ResumenMovimientoCajaResponse> Resumen);

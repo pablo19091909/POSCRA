@@ -40,6 +40,41 @@
                            Foreground="White"
                            Margin="0,0,0,20"/>
 
+                <TextBlock Name="txtCajaApiStatus"
+                           Visibility="Collapsed"
+                           TextWrapping="Wrap"
+                           Foreground="#FFFFD966"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,14"/>
+
+                <StackPanel Name="panelAperturaTurnoApi"
+                            Visibility="Collapsed"
+                            Margin="0,0,0,20">
+                    <TextBlock Text="Apertura de Turno API"
+                               FontSize="18"
+                               FontWeight="Bold"
+                               Foreground="#FFFFD966"
+                               Margin="0,0,0,8"/>
+                    <TextBlock Name="txtAperturaTurnoApiEstado"
+                               TextWrapping="Wrap"
+                               Foreground="White"
+                               Margin="0,0,0,8"/>
+                    <TextBlock Text="Fondo inicial:" Foreground="White"/>
+                    <TextBox Name="txtFondoInicialTurnoApi" Margin="0,0,0,8"/>
+                    <TextBlock Text="Observacion:" Foreground="White"/>
+                    <TextBox Name="txtObservacionTurnoApi"
+                             Height="50"
+                             TextWrapping="Wrap"
+                             Margin="0,0,0,10"/>
+                    <Button Name="btnAbrirTurnoApi"
+                            Content="Abrir turno API"
+                            Click="AbrirTurnoApi_Click"
+                            Width="160"
+                            Height="40"
+                            Background="#1b7fbd"
+                            Foreground="White"/>
+                </StackPanel>
+
                 <TextBlock Text="Monto a Ingresar:" Foreground="White"/>
                 <TextBox Name="txtMontoIngreso" Margin="0,0,0,10"/>
 

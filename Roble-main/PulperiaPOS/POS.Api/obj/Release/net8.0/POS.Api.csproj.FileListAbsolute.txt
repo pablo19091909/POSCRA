@@ -1,4 +1,3 @@
-D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\appsettings.Development.json
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\appsettings.json
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\POS.Api.staticwebassets.endpoints.json
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\POS.Api.exe
@@ -8,6 +7,8 @@ D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\POS.Api.dll
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\POS.Api.pdb
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\Azure.Core.dll
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\Azure.Identity.dll
+D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\BCrypt.Net-Next.dll
+D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\Microsoft.Bcl.AsyncInterfaces.dll
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\Microsoft.Data.SqlClient.dll
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\Microsoft.Identity.Client.dll
@@ -71,6 +72,3 @@ D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\obj\Release\net8.0\refint\POS.Api.dll
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\obj\Release\net8.0\POS.Api.pdb
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\obj\Release\net8.0\POS.Api.genruntimeconfig.cache
 D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\obj\Release\net8.0\ref\POS.Api.dll
-D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\BCrypt.Net-Next.dll
-D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
-D:\POSCRA\Roble-main\PulperiaPOS\POS.Api\bin\Release\net8.0\appsettings.Test.json

@@ -9,9 +9,21 @@ public interface ICajaRepository
         decimal fondoInicial,
         string? observacion,
         int usuarioId,
+        Guid idempotencyKey,
+        byte[] requestHash,
         CancellationToken cancellationToken);
 
     Task<MovimientoCajaQuery> RegistrarIngresoAsync(
+        string cajaCodigo,
+        decimal monto,
+        string motivo,
+        string? referencia,
+        int usuarioId,
+        Guid idempotencyKey,
+        byte[] requestHash,
+        CancellationToken cancellationToken);
+
+    Task<MovimientoCajaQuery> RegistrarRetiroAsync(
         string cajaCodigo,
         decimal monto,
         string motivo,
@@ -28,4 +40,14 @@ public interface ICajaRepository
     Task<IReadOnlyCollection<ResumenMovimientoCajaQuery>> GetResumenMovimientosAsync(long idTurno, CancellationToken cancellationToken);
 
     Task<decimal> CalcularEfectivoEsperadoAsync(long idTurno, CancellationToken cancellationToken);
+
+    Task<CierreTurnoQuery> CerrarTurnoAsync(
+        long idTurno,
+        decimal efectivoContado,
+        string? observacion,
+        byte[] rowVersion,
+        int usuarioId,
+        Guid idempotencyKey,
+        byte[] requestHash,
+        CancellationToken cancellationToken);
 }

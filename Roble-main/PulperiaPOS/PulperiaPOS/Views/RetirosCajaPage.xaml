@@ -45,6 +45,12 @@
                            FontWeight="Bold"
                            Foreground="White"
                            Margin="0,0,0,20"/>
+                <TextBlock Name="txtCajaApiStatus"
+                           Visibility="Collapsed"
+                           TextWrapping="Wrap"
+                           Foreground="#FFFFD966"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,14"/>
                 <TextBlock Text="Dinero en Caja (Calculado):" Foreground="White"/>
                 <TextBox Name="txtDineroCaja" IsReadOnly="True" Margin="0,0,0,20" TextChanged="txtDineroCaja_TextChanged"/>
 

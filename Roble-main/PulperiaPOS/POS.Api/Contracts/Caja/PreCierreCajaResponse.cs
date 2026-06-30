@@ -6,4 +6,5 @@ public sealed record PreCierreCajaResponse(
     string Estado,
     DateTimeOffset AperturaUtc,
     decimal EfectivoEsperado,
+    string RowVersion,
     IReadOnlyCollection<ResumenMovimientoCajaResponse> Resumen);

@@ -41,7 +41,11 @@ public sealed class CajaController : ControllerBase
             return Unauthorized(new ErrorResponse(HttpContext.TraceIdentifier, "Token invalido."));
         }
 
-        var result = await cajaService.AbrirTurnoAsync(request, usuarioId, cancellationToken);
+        var result = await cajaService.AbrirTurnoAsync(
+            request,
+            usuarioId,
+            Request.Headers["Idempotency-Key"].FirstOrDefault(),
+            cancellationToken);
         return ToActionResult(result);
     }
 
@@ -76,7 +80,11 @@ public sealed class CajaController : ControllerBase
             return Unauthorized(new ErrorResponse(HttpContext.TraceIdentifier, "Token invalido."));
         }
 
-        var result = await cajaService.RegistrarRetiroAsync(request, usuarioId, cancellationToken);
+        var result = await cajaService.RegistrarRetiroAsync(
+            request,
+            usuarioId,
+            Request.Headers["Idempotency-Key"].FirstOrDefault(),
+            cancellationToken);
         return ToActionResult(result);
     }
 
@@ -102,7 +110,12 @@ public sealed class CajaController : ControllerBase
             return Unauthorized(new ErrorResponse(HttpContext.TraceIdentifier, "Token invalido."));
         }
 
-        var result = await cajaService.CerrarTurnoAsync(idTurno, request, usuarioId, cancellationToken);
+        var result = await cajaService.CerrarTurnoAsync(
+            idTurno,
+            request,
+            usuarioId,
+            Request.Headers["Idempotency-Key"].FirstOrDefault(),
+            cancellationToken);
         return ToActionResult(result);
     }
 

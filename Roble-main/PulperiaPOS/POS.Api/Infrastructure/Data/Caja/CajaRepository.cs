@@ -8,12 +8,18 @@ public sealed class CajaRepository : ICajaRepository
 {
     private const string EstadoAbierto = "Abierto";
     private const string EstadoEnCierre = "EnCierre";
+    private const string EstadoCerrado = "Cerrado";
     private const string EstadoConfirmado = "Confirmado";
     private const string MonedaColones = "CRC";
     private const string OrigenApi = "POS.Api";
     private const string TipoFondoInicial = "FondoInicial";
     private const string TipoIngresoCaja = "IngresoCaja";
+    private const string TipoRetiroCaja = "RetiroCaja";
+    private const string TipoCierreDiferencia = "CierreDiferencia";
     private const string ResultadoIngresoCajaCreado = "IngresoCajaCreado";
+    private const string ResultadoRetiroCajaCreado = "RetiroCajaCreado";
+    private const string ResultadoTurnoAbierto = "TurnoAbierto";
+    private const string ResultadoTurnoCerrado = "TurnoCerrado";
 
     private readonly IDatabaseConnectionFactory connectionFactory;
 
@@ -51,6 +57,8 @@ public sealed class CajaRepository : ICajaRepository
         decimal fondoInicial,
         string? observacion,
         int usuarioId,
+        Guid idempotencyKey,
+        byte[] requestHash,
         CancellationToken cancellationToken)
     {
         await using var connection = connectionFactory.CreateConnection();
@@ -65,10 +73,42 @@ public sealed class CajaRepository : ICajaRepository
                 throw new CajaBusinessException(CajaServiceStatus.Invalid, "Usuario invalido.");
             }
 
+            var idempotencia = await GetCajaIdempotenciaForUpdateAsync(
+                connection,
+                transaction,
+                usuarioId,
+                CajaIdempotencyOperation.AbrirTurno.ToString(),
+                idempotencyKey,
+                cancellationToken);
+
+            if (idempotencia is not null)
+            {
+                var existing = await ResolveExistingTurnoIdempotenciaAsync(
+                    connection,
+                    transaction,
+                    idempotencia,
+                    requestHash,
+                    cancellationToken);
+
+                await transaction.CommitAsync(cancellationToken);
+                return existing;
+            }
+
             if (await TurnoAbiertoExisteAsync(connection, transaction, cajaCodigo, cancellationToken))
             {
                 throw new CajaBusinessException(CajaServiceStatus.Conflict, "Ya existe un turno abierto para esta caja.");
             }
+
+            var idCajaIdempotencia = await CrearCajaIdempotenciaEnProcesoAsync(
+                connection,
+                transaction,
+                usuarioId,
+                null,
+                cajaCodigo,
+                CajaIdempotencyOperation.AbrirTurno.ToString(),
+                idempotencyKey,
+                requestHash,
+                cancellationToken);
 
             var idTurno = await CrearTurnoAsync(
                 connection,
@@ -79,7 +119,7 @@ public sealed class CajaRepository : ICajaRepository
                 usuarioId,
                 cancellationToken);
 
-            await CrearMovimientoFondoInicialAsync(
+            var idMovimiento = await CrearMovimientoFondoInicialAsync(
                 connection,
                 transaction,
                 idTurno,
@@ -87,6 +127,15 @@ public sealed class CajaRepository : ICajaRepository
                 fondoInicial,
                 observacion,
                 usuarioId,
+                cancellationToken);
+
+            await CompletarCajaIdempotenciaAsync(
+                connection,
+                transaction,
+                idCajaIdempotencia,
+                idTurno,
+                idMovimiento,
+                ResultadoTurnoAbierto,
                 cancellationToken);
 
             var turno = await GetTurnoByIdAsync(connection, transaction, idTurno, cancellationToken)
@@ -139,7 +188,7 @@ public sealed class CajaRepository : ICajaRepository
 
             if (idempotencia is not null)
             {
-                var existing = await ResolveExistingIngresoIdempotenciaAsync(
+                var existing = await ResolveExistingCajaIdempotenciaAsync(
                     connection,
                     transaction,
                     idempotencia,
@@ -188,6 +237,114 @@ public sealed class CajaRepository : ICajaRepository
 
             var movimiento = await GetMovimientoByIdAsync(connection, transaction, idMovimiento, cancellationToken)
                 ?? throw new InvalidOperationException("Cash income movement was not found after creation.");
+
+            await transaction.CommitAsync(cancellationToken);
+            return movimiento;
+        }
+        catch (SqlException exception) when (IsUniqueConstraintViolation(exception))
+        {
+            await RollbackQuietlyAsync(transaction, cancellationToken);
+            throw new CajaBusinessException(CajaServiceStatus.Conflict, "Solicitud de caja duplicada o en conflicto.");
+        }
+        catch
+        {
+            await RollbackQuietlyAsync(transaction, cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<MovimientoCajaQuery> RegistrarRetiroAsync(
+        string cajaCodigo,
+        decimal monto,
+        string motivo,
+        string? referencia,
+        int usuarioId,
+        Guid idempotencyKey,
+        byte[] requestHash,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        await using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+
+        try
+        {
+            if (!await UsuarioActivoExisteAsync(connection, transaction, usuarioId, cancellationToken))
+            {
+                throw new CajaBusinessException(CajaServiceStatus.Invalid, "Usuario invalido.");
+            }
+
+            var idempotencia = await GetCajaIdempotenciaForUpdateAsync(
+                connection,
+                transaction,
+                usuarioId,
+                TipoRetiroCaja,
+                idempotencyKey,
+                cancellationToken);
+
+            if (idempotencia is not null)
+            {
+                var existing = await ResolveExistingCajaIdempotenciaAsync(
+                    connection,
+                    transaction,
+                    idempotencia,
+                    requestHash,
+                    cancellationToken);
+
+                await transaction.CommitAsync(cancellationToken);
+                return existing;
+            }
+
+            var idTurno = await GetTurnoAbiertoIdForUpdateAsync(connection, transaction, cajaCodigo, cancellationToken);
+            if (idTurno is null)
+            {
+                throw new CajaBusinessException(CajaServiceStatus.Conflict, "No existe turno abierto para esta caja.");
+            }
+
+            var efectivoDisponible = await CalcularEfectivoDisponibleEnTurnoAsync(
+                connection,
+                transaction,
+                idTurno.Value,
+                cancellationToken);
+
+            if (monto > efectivoDisponible)
+            {
+                throw new CajaBusinessException(CajaServiceStatus.Conflict, "Efectivo insuficiente para registrar el retiro.");
+            }
+
+            var idCajaIdempotencia = await CrearCajaIdempotenciaEnProcesoAsync(
+                connection,
+                transaction,
+                usuarioId,
+                idTurno.Value,
+                cajaCodigo,
+                TipoRetiroCaja,
+                idempotencyKey,
+                requestHash,
+                cancellationToken);
+
+            var idMovimiento = await CrearMovimientoRetiroCajaAsync(
+                connection,
+                transaction,
+                idTurno.Value,
+                monto,
+                motivo,
+                referencia,
+                usuarioId,
+                cancellationToken);
+
+            await CompletarCajaIdempotenciaAsync(
+                connection,
+                transaction,
+                idCajaIdempotencia,
+                idTurno.Value,
+                idMovimiento,
+                ResultadoRetiroCajaCreado,
+                cancellationToken);
+
+            var movimiento = await GetMovimientoByIdAsync(connection, transaction, idMovimiento, cancellationToken)
+                ?? throw new InvalidOperationException("Cash withdrawal movement was not found after creation.");
 
             await transaction.CommitAsync(cancellationToken);
             return movimiento;
@@ -274,12 +431,50 @@ public sealed class CajaRepository : ICajaRepository
             FROM dbo.movimiento_caja
             WHERE idTurno = @idTurno
               AND estado = N'Confirmado'
+              AND tipo_movimiento <> N'CierreDiferencia'
             GROUP BY tipo_movimiento
             ORDER BY tipo_movimiento;
             """;
 
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@idTurno", idTurno);
+
+        var resumen = new List<ResumenMovimientoCajaQuery>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            resumen.Add(new ResumenMovimientoCajaQuery(
+                reader.GetString(0),
+                Convert.ToInt32(reader.GetInt64(1)),
+                reader.IsDBNull(2) ? 0 : reader.GetDecimal(2)));
+        }
+
+        return resumen;
+    }
+
+    private static async Task<IReadOnlyCollection<ResumenMovimientoCajaQuery>> GetResumenMovimientosAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        long idTurno,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT
+                tipo_movimiento,
+                COUNT_BIG(1) AS cantidad,
+                SUM(monto) AS total
+            FROM dbo.movimiento_caja
+            WHERE idTurno = @idTurno
+              AND estado = @estado
+              AND tipo_movimiento <> @tipo_cierre_diferencia
+            GROUP BY tipo_movimiento
+            ORDER BY tipo_movimiento;
+            """;
+
+        await using var command = CreateCommand(connection, transaction, sql);
+        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
+        command.Parameters.Add("@estado", SqlDbType.NVarChar, 20).Value = EstadoConfirmado;
+        command.Parameters.Add("@tipo_cierre_diferencia", SqlDbType.NVarChar, 30).Value = TipoCierreDiferencia;
 
         var resumen = new List<ResumenMovimientoCajaQuery>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -308,7 +503,8 @@ public sealed class CajaRepository : ICajaRepository
                 END), 0)
             FROM dbo.movimiento_caja
             WHERE idTurno = @idTurno
-              AND estado = N'Confirmado';
+              AND estado = N'Confirmado'
+              AND tipo_movimiento <> N'CierreDiferencia';
             """;
 
         await using var command = new SqlCommand(sql, connection);
@@ -316,6 +512,142 @@ public sealed class CajaRepository : ICajaRepository
 
         var result = await command.ExecuteScalarAsync(cancellationToken);
         return result == DBNull.Value ? 0 : Convert.ToDecimal(result);
+    }
+
+    public async Task<CierreTurnoQuery> CerrarTurnoAsync(
+        long idTurno,
+        decimal efectivoContado,
+        string? observacion,
+        byte[] rowVersion,
+        int usuarioId,
+        Guid idempotencyKey,
+        byte[] requestHash,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        await using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+
+        try
+        {
+            if (!await UsuarioActivoExisteAsync(connection, transaction, usuarioId, cancellationToken))
+            {
+                throw new CajaBusinessException(CajaServiceStatus.Invalid, "Usuario invalido.");
+            }
+
+            var idempotencia = await GetCajaIdempotenciaForUpdateAsync(
+                connection,
+                transaction,
+                usuarioId,
+                CajaIdempotencyOperation.CerrarTurno.ToString(),
+                idempotencyKey,
+                cancellationToken);
+
+            if (idempotencia is not null)
+            {
+                var existing = await ResolveExistingCierreIdempotenciaAsync(
+                    connection,
+                    transaction,
+                    idempotencia,
+                    requestHash,
+                    cancellationToken);
+
+                await transaction.CommitAsync(cancellationToken);
+                return existing;
+            }
+
+            var turno = await GetTurnoByIdForUpdateAsync(connection, transaction, idTurno, cancellationToken);
+            if (turno is null)
+            {
+                throw new CajaBusinessException(CajaServiceStatus.NotFound, "Turno no encontrado.");
+            }
+
+            if (!turno.RowVersion.SequenceEqual(rowVersion))
+            {
+                throw new CajaBusinessException(CajaServiceStatus.Conflict, "Version de turno desactualizada.");
+            }
+
+            if (!string.Equals(turno.Estado, EstadoAbierto, StringComparison.Ordinal))
+            {
+                throw new CajaBusinessException(CajaServiceStatus.Conflict, "El turno no esta abierto.");
+            }
+
+            var idCajaIdempotencia = await CrearCajaIdempotenciaEnProcesoAsync(
+                connection,
+                transaction,
+                usuarioId,
+                idTurno,
+                turno.CajaCodigo,
+                CajaIdempotencyOperation.CerrarTurno.ToString(),
+                idempotencyKey,
+                requestHash,
+                cancellationToken);
+
+            await CambiarTurnoAEnCierreAsync(connection, transaction, idTurno, rowVersion, cancellationToken);
+
+            var efectivoEsperado = await CalcularEfectivoEsperadoParaCierreAsync(
+                connection,
+                transaction,
+                idTurno,
+                cancellationToken);
+
+            var diferencia = efectivoContado - efectivoEsperado;
+            if (diferencia != 0 && string.IsNullOrWhiteSpace(observacion))
+            {
+                throw new CajaBusinessException(CajaServiceStatus.Invalid, "Observacion requerida cuando existe diferencia.");
+            }
+
+            long? idMovimientoDiferencia = null;
+            if (diferencia != 0)
+            {
+                idMovimientoDiferencia = await CrearMovimientoCierreDiferenciaAsync(
+                    connection,
+                    transaction,
+                    idTurno,
+                    Math.Abs(diferencia),
+                    observacion!,
+                    usuarioId,
+                    cancellationToken);
+            }
+
+            await CerrarTurnoFinalAsync(
+                connection,
+                transaction,
+                idTurno,
+                usuarioId,
+                efectivoEsperado,
+                efectivoContado,
+                diferencia,
+                observacion,
+                cancellationToken);
+
+            await CompletarCajaIdempotenciaCierreAsync(
+                connection,
+                transaction,
+                idCajaIdempotencia,
+                idTurno,
+                idMovimientoDiferencia,
+                ResultadoTurnoCerrado,
+                cancellationToken);
+
+            var turnoCerrado = await GetTurnoByIdAsync(connection, transaction, idTurno, cancellationToken)
+                ?? throw new InvalidOperationException("Caja turn was not found after closing.");
+            var resumen = await GetResumenMovimientosAsync(connection, transaction, idTurno, cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            return new CierreTurnoQuery(turnoCerrado, idMovimientoDiferencia is not null, resumen);
+        }
+        catch (SqlException exception) when (IsUniqueConstraintViolation(exception))
+        {
+            await RollbackQuietlyAsync(transaction, cancellationToken);
+            throw new CajaBusinessException(CajaServiceStatus.Conflict, "Solicitud de caja duplicada o en conflicto.");
+        }
+        catch
+        {
+            await RollbackQuietlyAsync(transaction, cancellationToken);
+            throw;
+        }
     }
 
     private static async Task<bool> UsuarioActivoExisteAsync(
@@ -422,7 +754,7 @@ public sealed class CajaRepository : ICajaRepository
         return await reader.ReadAsync(cancellationToken) ? MapCajaIdempotencia(reader) : null;
     }
 
-    private static async Task<MovimientoCajaQuery> ResolveExistingIngresoIdempotenciaAsync(
+    private static async Task<MovimientoCajaQuery> ResolveExistingCajaIdempotenciaAsync(
         SqlConnection connection,
         SqlTransaction transaction,
         CajaIdempotencyState state,
@@ -449,11 +781,125 @@ public sealed class CajaRepository : ICajaRepository
         throw new CajaBusinessException(CajaServiceStatus.Conflict, "Estado de idempotencia no permite continuar.");
     }
 
+    private static async Task<CajaTurnoQuery> ResolveExistingTurnoIdempotenciaAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        CajaIdempotencyState state,
+        byte[] requestHash,
+        CancellationToken cancellationToken)
+    {
+        if (!state.RequestHash.SequenceEqual(requestHash))
+        {
+            throw new CajaBusinessException(CajaServiceStatus.Conflict, "Idempotency-Key ya fue usada con una solicitud distinta.");
+        }
+
+        if (string.Equals(state.Estado, CajaIdempotencyStatus.EnProceso, StringComparison.Ordinal))
+        {
+            throw new CajaBusinessException(CajaServiceStatus.Conflict, "Solicitud de caja en proceso. Reintente mas tarde con la misma key.");
+        }
+
+        if (string.Equals(state.Estado, CajaIdempotencyStatus.Completada, StringComparison.Ordinal) &&
+            state.IdTurno is not null)
+        {
+            return await GetTurnoByIdAsync(connection, transaction, state.IdTurno.Value, cancellationToken)
+                ?? throw new CajaBusinessException(CajaServiceStatus.Conflict, "No fue posible recuperar el resultado completado.");
+        }
+
+        throw new CajaBusinessException(CajaServiceStatus.Conflict, "Estado de idempotencia no permite continuar.");
+    }
+
+    private static async Task<CierreTurnoQuery> ResolveExistingCierreIdempotenciaAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        CajaIdempotencyState state,
+        byte[] requestHash,
+        CancellationToken cancellationToken)
+    {
+        if (!state.RequestHash.SequenceEqual(requestHash))
+        {
+            throw new CajaBusinessException(CajaServiceStatus.Conflict, "Idempotency-Key ya fue usada con una solicitud distinta.");
+        }
+
+        if (string.Equals(state.Estado, CajaIdempotencyStatus.EnProceso, StringComparison.Ordinal))
+        {
+            throw new CajaBusinessException(CajaServiceStatus.Conflict, "Solicitud de caja en proceso. Reintente mas tarde con la misma key.");
+        }
+
+        if (string.Equals(state.Estado, CajaIdempotencyStatus.Completada, StringComparison.Ordinal) &&
+            state.CierreReferenciaId is not null)
+        {
+            var turno = await GetTurnoByIdAsync(connection, transaction, state.CierreReferenciaId.Value, cancellationToken)
+                ?? throw new CajaBusinessException(CajaServiceStatus.Conflict, "No fue posible recuperar el resultado completado.");
+            var resumen = await GetResumenMovimientosAsync(connection, transaction, state.CierreReferenciaId.Value, cancellationToken);
+            return new CierreTurnoQuery(turno, state.IdMovimiento is not null, resumen);
+        }
+
+        throw new CajaBusinessException(CajaServiceStatus.Conflict, "Estado de idempotencia no permite continuar.");
+    }
+
+    private static async Task<decimal> CalcularEfectivoDisponibleEnTurnoAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        long idTurno,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN tipo_movimiento IN (N'FondoInicial', N'VentaEfectivo', N'IngresoCaja', N'AjustePositivo') THEN monto
+                    WHEN tipo_movimiento IN (N'RetiroCaja', N'AjusteNegativo', N'DevolucionEfectivo') THEN -monto
+                    ELSE 0
+                END), 0)
+            FROM dbo.movimiento_caja WITH (UPDLOCK, HOLDLOCK)
+            WHERE idTurno = @idTurno
+              AND estado = @estado;
+            """;
+
+        await using var command = CreateCommand(connection, transaction, sql);
+        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
+        command.Parameters.Add("@estado", SqlDbType.NVarChar, 20).Value = EstadoConfirmado;
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return result == DBNull.Value ? 0 : Convert.ToDecimal(result);
+    }
+
+    private static async Task<decimal> CalcularEfectivoEsperadoParaCierreAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        long idTurno,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN m.tipo_movimiento IN (N'FondoInicial', N'VentaEfectivo', N'IngresoCaja', N'AjustePositivo') THEN m.monto
+                    WHEN m.tipo_movimiento IN (N'RetiroCaja', N'AjusteNegativo', N'DevolucionEfectivo') THEN -m.monto
+                    WHEN m.tipo_movimiento = N'Reversa' AND original.tipo_movimiento IN (N'FondoInicial', N'VentaEfectivo', N'IngresoCaja', N'AjustePositivo') THEN -m.monto
+                    WHEN m.tipo_movimiento = N'Reversa' AND original.tipo_movimiento IN (N'RetiroCaja', N'AjusteNegativo', N'DevolucionEfectivo') THEN m.monto
+                    ELSE 0
+                END), 0)
+            FROM dbo.movimiento_caja m WITH (UPDLOCK, HOLDLOCK)
+            LEFT JOIN dbo.movimiento_caja original
+              ON original.idMovimiento = m.reversa_de_movimiento_id
+            WHERE m.idTurno = @idTurno
+              AND m.estado = @estado
+              AND m.tipo_movimiento <> @tipo_cierre_diferencia;
+            """;
+
+        await using var command = CreateCommand(connection, transaction, sql);
+        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
+        command.Parameters.Add("@estado", SqlDbType.NVarChar, 20).Value = EstadoConfirmado;
+        command.Parameters.Add("@tipo_cierre_diferencia", SqlDbType.NVarChar, 30).Value = TipoCierreDiferencia;
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return result == DBNull.Value ? 0 : Convert.ToDecimal(result);
+    }
+
     private static async Task<long> CrearCajaIdempotenciaEnProcesoAsync(
         SqlConnection connection,
         SqlTransaction transaction,
         int usuarioId,
-        long idTurno,
+        long? idTurno,
         string cajaCodigo,
         string operacion,
         Guid idempotencyKey,
@@ -496,7 +942,7 @@ public sealed class CajaRepository : ICajaRepository
 
         await using var command = CreateCommand(connection, transaction, sql);
         command.Parameters.Add("@usuario_id", SqlDbType.Int).Value = usuarioId;
-        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
+        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno is null ? DBNull.Value : idTurno.Value;
         command.Parameters.Add("@caja_codigo", SqlDbType.NVarChar, 50).Value = cajaCodigo;
         command.Parameters.Add("@operacion", SqlDbType.NVarChar, 40).Value = operacion;
         command.Parameters.Add("@idempotency_key", SqlDbType.UniqueIdentifier).Value = idempotencyKey;
@@ -505,6 +951,211 @@ public sealed class CajaRepository : ICajaRepository
 
         var result = await command.ExecuteScalarAsync(cancellationToken);
         return Convert.ToInt64(result);
+    }
+
+    private static async Task<CajaTurnoQuery?> GetTurnoByIdForUpdateAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        long idTurno,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT
+                idTurno, caja_codigo, estado, usuario_apertura_id, usuario_cierre_id,
+                apertura_utc, cierre_utc, fondo_inicial, efectivo_esperado,
+                efectivo_contado, diferencia, observacion_apertura,
+                observacion_cierre, cierre_caja_id, row_version
+            FROM dbo.caja_turno WITH (UPDLOCK, HOLDLOCK)
+            WHERE idTurno = @idTurno;
+            """;
+
+        await using var command = CreateCommand(connection, transaction, sql);
+        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken) ? MapTurno(reader) : null;
+    }
+
+    private static async Task CambiarTurnoAEnCierreAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        long idTurno,
+        byte[] rowVersion,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            UPDATE dbo.caja_turno
+            SET estado = @estado_en_cierre,
+                actualizado_utc = SYSUTCDATETIME()
+            WHERE idTurno = @idTurno
+              AND estado = @estado_abierto
+              AND row_version = @row_version;
+            """;
+
+        await using var command = CreateCommand(connection, transaction, sql);
+        command.Parameters.Add("@estado_en_cierre", SqlDbType.NVarChar, 20).Value = EstadoEnCierre;
+        command.Parameters.Add("@estado_abierto", SqlDbType.NVarChar, 20).Value = EstadoAbierto;
+        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
+        command.Parameters.Add("@row_version", SqlDbType.Timestamp).Value = rowVersion;
+
+        var affected = await command.ExecuteNonQueryAsync(cancellationToken);
+        if (affected != 1)
+        {
+            throw new CajaBusinessException(CajaServiceStatus.Conflict, "Version de turno desactualizada.");
+        }
+    }
+
+    private static async Task<long> CrearMovimientoCierreDiferenciaAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        long idTurno,
+        decimal monto,
+        string observacion,
+        int usuarioId,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            INSERT INTO dbo.movimiento_caja (
+                idTurno,
+                tipo_movimiento,
+                origen,
+                monto,
+                moneda,
+                fecha_hora_utc,
+                usuario_id,
+                factura,
+                pago_id,
+                ingreso_caja_id,
+                retiro_caja_id,
+                referencia,
+                observacion,
+                estado,
+                reversa_de_movimiento_id,
+                correlacion_tecnica,
+                creado_utc)
+            OUTPUT INSERTED.idMovimiento
+            VALUES (
+                @idTurno,
+                @tipo_movimiento,
+                @origen,
+                @monto,
+                @moneda,
+                SYSUTCDATETIME(),
+                @usuario_id,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                @referencia,
+                @observacion,
+                @estado,
+                NULL,
+                NEWID(),
+                SYSUTCDATETIME());
+            """;
+
+        await using var command = CreateCommand(connection, transaction, sql);
+        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
+        command.Parameters.Add("@tipo_movimiento", SqlDbType.NVarChar, 30).Value = TipoCierreDiferencia;
+        command.Parameters.Add("@origen", SqlDbType.NVarChar, 30).Value = OrigenApi;
+        command.Parameters.Add("@monto", SqlDbType.Decimal).Value = monto;
+        command.Parameters["@monto"].Precision = 18;
+        command.Parameters["@monto"].Scale = 2;
+        command.Parameters.Add("@moneda", SqlDbType.Char, 3).Value = MonedaColones;
+        command.Parameters.Add("@usuario_id", SqlDbType.Int).Value = usuarioId;
+        command.Parameters.Add("@referencia", SqlDbType.NVarChar, 100).Value = ResultadoTurnoCerrado;
+        command.Parameters.Add("@observacion", SqlDbType.NVarChar, 250).Value = observacion;
+        command.Parameters.Add("@estado", SqlDbType.NVarChar, 20).Value = EstadoConfirmado;
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt64(result);
+    }
+
+    private static async Task CerrarTurnoFinalAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        long idTurno,
+        int usuarioId,
+        decimal efectivoEsperado,
+        decimal efectivoContado,
+        decimal diferencia,
+        string? observacion,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            UPDATE dbo.caja_turno
+            SET estado = @estado_cerrado,
+                usuario_cierre_id = @usuario_cierre_id,
+                cierre_utc = SYSUTCDATETIME(),
+                efectivo_esperado = @efectivo_esperado,
+                efectivo_contado = @efectivo_contado,
+                diferencia = @diferencia,
+                observacion_cierre = @observacion_cierre,
+                actualizado_utc = SYSUTCDATETIME()
+            WHERE idTurno = @idTurno
+              AND estado = @estado_en_cierre;
+            """;
+
+        await using var command = CreateCommand(connection, transaction, sql);
+        command.Parameters.Add("@estado_cerrado", SqlDbType.NVarChar, 20).Value = EstadoCerrado;
+        command.Parameters.Add("@estado_en_cierre", SqlDbType.NVarChar, 20).Value = EstadoEnCierre;
+        command.Parameters.Add("@usuario_cierre_id", SqlDbType.Int).Value = usuarioId;
+        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
+        command.Parameters.Add("@efectivo_esperado", SqlDbType.Decimal).Value = efectivoEsperado;
+        command.Parameters["@efectivo_esperado"].Precision = 18;
+        command.Parameters["@efectivo_esperado"].Scale = 2;
+        command.Parameters.Add("@efectivo_contado", SqlDbType.Decimal).Value = efectivoContado;
+        command.Parameters["@efectivo_contado"].Precision = 18;
+        command.Parameters["@efectivo_contado"].Scale = 2;
+        command.Parameters.Add("@diferencia", SqlDbType.Decimal).Value = diferencia;
+        command.Parameters["@diferencia"].Precision = 18;
+        command.Parameters["@diferencia"].Scale = 2;
+        command.Parameters.Add("@observacion_cierre", SqlDbType.NVarChar, 250).Value =
+            string.IsNullOrWhiteSpace(observacion) ? DBNull.Value : observacion.Trim();
+
+        var affected = await command.ExecuteNonQueryAsync(cancellationToken);
+        if (affected != 1)
+        {
+            throw new CajaBusinessException(CajaServiceStatus.Conflict, "No fue posible cerrar el turno.");
+        }
+    }
+
+    private static async Task CompletarCajaIdempotenciaCierreAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        long idCajaIdempotencia,
+        long idTurno,
+        long? idMovimiento,
+        string resultadoCodigo,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            UPDATE dbo.caja_idempotencia
+            SET estado = @estado,
+                idTurno = @idTurno,
+                idMovimiento = @idMovimiento,
+                cierre_referencia_id = @cierre_referencia_id,
+                resultado_codigo = @resultado_codigo,
+                actualizado_utc = SYSUTCDATETIME(),
+                completado_utc = SYSUTCDATETIME()
+            WHERE idCajaIdempotencia = @idCajaIdempotencia
+              AND estado = @estado_en_proceso;
+            """;
+
+        await using var command = CreateCommand(connection, transaction, sql);
+        command.Parameters.Add("@estado", SqlDbType.NVarChar, 20).Value = CajaIdempotencyStatus.Completada;
+        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
+        command.Parameters.Add("@idMovimiento", SqlDbType.BigInt).Value = idMovimiento is null ? DBNull.Value : idMovimiento.Value;
+        command.Parameters.Add("@cierre_referencia_id", SqlDbType.BigInt).Value = idTurno;
+        command.Parameters.Add("@resultado_codigo", SqlDbType.NVarChar, 80).Value = resultadoCodigo;
+        command.Parameters.Add("@idCajaIdempotencia", SqlDbType.BigInt).Value = idCajaIdempotencia;
+        command.Parameters.Add("@estado_en_proceso", SqlDbType.NVarChar, 20).Value = CajaIdempotencyStatus.EnProceso;
+
+        var affected = await command.ExecuteNonQueryAsync(cancellationToken);
+        if (affected != 1)
+        {
+            throw new CajaBusinessException(CajaServiceStatus.Conflict, "Estado de idempotencia no permite completar la operacion.");
+        }
     }
 
     private static async Task<long> CrearTurnoAsync(
@@ -604,7 +1255,7 @@ public sealed class CajaRepository : ICajaRepository
         }
     }
 
-    private static async Task CrearMovimientoFondoInicialAsync(
+    private static async Task<long> CrearMovimientoFondoInicialAsync(
         SqlConnection connection,
         SqlTransaction transaction,
         long idTurno,
@@ -633,6 +1284,7 @@ public sealed class CajaRepository : ICajaRepository
                 reversa_de_movimiento_id,
                 correlacion_tecnica,
                 creado_utc)
+            OUTPUT INSERTED.idMovimiento
             SELECT
                 @idTurno,
                 @tipo_movimiento,
@@ -669,11 +1321,13 @@ public sealed class CajaRepository : ICajaRepository
             string.IsNullOrWhiteSpace(observacion) ? DBNull.Value : observacion;
         command.Parameters.Add("@estado", SqlDbType.NVarChar, 20).Value = EstadoConfirmado;
 
-        var inserted = await command.ExecuteNonQueryAsync(cancellationToken);
-        if (inserted != 1)
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        if (result is null || result == DBNull.Value)
         {
             throw new InvalidOperationException("Initial cash movement was not created.");
         }
+
+        return Convert.ToInt64(result);
     }
 
     private static async Task<long> CrearMovimientoIngresoCajaAsync(
@@ -729,6 +1383,74 @@ public sealed class CajaRepository : ICajaRepository
         await using var command = CreateCommand(connection, transaction, sql);
         command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
         command.Parameters.Add("@tipo_movimiento", SqlDbType.NVarChar, 30).Value = TipoIngresoCaja;
+        command.Parameters.Add("@origen", SqlDbType.NVarChar, 30).Value = OrigenApi;
+        command.Parameters.Add("@monto", SqlDbType.Decimal).Value = monto;
+        command.Parameters["@monto"].Precision = 18;
+        command.Parameters["@monto"].Scale = 2;
+        command.Parameters.Add("@moneda", SqlDbType.Char, 3).Value = MonedaColones;
+        command.Parameters.Add("@usuario_id", SqlDbType.Int).Value = usuarioId;
+        command.Parameters.Add("@referencia", SqlDbType.NVarChar, 100).Value =
+            string.IsNullOrWhiteSpace(referencia) ? DBNull.Value : referencia;
+        command.Parameters.Add("@observacion", SqlDbType.NVarChar, 250).Value = motivo;
+        command.Parameters.Add("@estado", SqlDbType.NVarChar, 20).Value = EstadoConfirmado;
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt64(result);
+    }
+
+    private static async Task<long> CrearMovimientoRetiroCajaAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        long idTurno,
+        decimal monto,
+        string motivo,
+        string? referencia,
+        int usuarioId,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            INSERT INTO dbo.movimiento_caja (
+                idTurno,
+                tipo_movimiento,
+                origen,
+                monto,
+                moneda,
+                fecha_hora_utc,
+                usuario_id,
+                factura,
+                pago_id,
+                ingreso_caja_id,
+                retiro_caja_id,
+                referencia,
+                observacion,
+                estado,
+                reversa_de_movimiento_id,
+                correlacion_tecnica,
+                creado_utc)
+            OUTPUT INSERTED.idMovimiento
+            VALUES (
+                @idTurno,
+                @tipo_movimiento,
+                @origen,
+                @monto,
+                @moneda,
+                SYSUTCDATETIME(),
+                @usuario_id,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                @referencia,
+                @observacion,
+                @estado,
+                NULL,
+                NEWID(),
+                SYSUTCDATETIME());
+            """;
+
+        await using var command = CreateCommand(connection, transaction, sql);
+        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
+        command.Parameters.Add("@tipo_movimiento", SqlDbType.NVarChar, 30).Value = TipoRetiroCaja;
         command.Parameters.Add("@origen", SqlDbType.NVarChar, 30).Value = OrigenApi;
         command.Parameters.Add("@monto", SqlDbType.Decimal).Value = monto;
         command.Parameters["@monto"].Precision = 18;

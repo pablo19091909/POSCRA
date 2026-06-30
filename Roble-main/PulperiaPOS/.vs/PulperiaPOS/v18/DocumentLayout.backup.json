@@ -3,7 +3,12 @@
   "WorkspaceRootPath": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\pablo\\AppData\\Local\\Temp\\.vsdbgsrc\\44aa595dc2a1078aa662bebf92f46ec0aa83d37961bfc5ec1f12f1b995219153\\AddressBinder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|d:\\poscra\\roble-main\\pulperiapos\\pulperiapos\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|solutionrelative:pulperiapos\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|d:\\poscra\\roble-main\\pulperiapos\\pulperiapos\\appsettings.development.json.example||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{972FADF3-50D5-4CC9-9CE9-68AA16399361}|PulperiaPOS\\PulperiaPOS.csproj|solutionrelative:pulperiapos\\appsettings.development.json.example||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{01215175-C2E9-4A16-A6E9-10B68815A1C4}|POS.Api\\POS.Api.csproj|d:\\poscra\\roble-main\\pulperiapos\\pos.api\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
@@ -12,6 +17,9 @@
     {
       "AbsoluteMoniker": "D:0:0:{01215175-C2E9-4A16-A6E9-10B68815A1C4}|POS.Api\\POS.Api.csproj|d:\\poscra\\roble-main\\pulperiapos\\pos.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{01215175-C2E9-4A16-A6E9-10B68815A1C4}|POS.Api\\POS.Api.csproj|solutionrelative:pos.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\pablo\\AppData\\Local\\Temp\\.vsdbgsrc\\44aa595dc2a1078aa662bebf92f46ec0aa83d37961bfc5ec1f12f1b995219153\\AddressBinder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{01215175-C2E9-4A16-A6E9-10B68815A1C4}|POS.Api\\POS.Api.csproj|d:\\poscra\\roble-main\\pulperiapos\\pos.api\\configuration\\configurationkeys.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -52,29 +60,55 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "AddressBinder.cs",
-              "DocumentMoniker": "C:\\Users\\pablo\\AppData\\Local\\Temp\\.vsdbgsrc\\44aa595dc2a1078aa662bebf92f46ec0aa83d37961bfc5ec1f12f1b995219153\\AddressBinder.cs",
-              "ToolTip": "C:\\Users\\pablo\\AppData\\Local\\Temp\\.vsdbgsrc\\44aa595dc2a1078aa662bebf92f46ec0aa83d37961bfc5ec1f12f1b995219153\\AddressBinder.cs",
-              "ViewState": "AgIAAKMAAAAAAAAAAADgv64AAAADAAAAAQAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-26T02:35:36.132Z",
+              "Title": "appsettings.Development.json",
+              "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\appsettings.Development.json",
+              "RelativeDocumentMoniker": "PulperiaPOS\\appsettings.Development.json",
+              "ToolTip": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\appsettings.Development.json",
+              "RelativeToolTip": "PulperiaPOS\\appsettings.Development.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-06-30T03:03:47.322Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
+              "Title": "appsettings.Development.json.example",
+              "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\appsettings.Development.json.example",
+              "RelativeDocumentMoniker": "PulperiaPOS\\appsettings.Development.json.example",
+              "ToolTip": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\appsettings.Development.json.example",
+              "RelativeToolTip": "PulperiaPOS\\appsettings.Development.json.example",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAaAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-06-30T02:36:29.341Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "AddressBinder.cs",
+              "DocumentMoniker": "C:\\Users\\pablo\\AppData\\Local\\Temp\\.vsdbgsrc\\44aa595dc2a1078aa662bebf92f46ec0aa83d37961bfc5ec1f12f1b995219153\\AddressBinder.cs",
+              "ToolTip": "C:\\Users\\pablo\\AppData\\Local\\Temp\\.vsdbgsrc\\44aa595dc2a1078aa662bebf92f46ec0aa83d37961bfc5ec1f12f1b995219153\\AddressBinder.cs",
+              "ViewState": "AgIAAKMAAAAAAAAAAADgv64AAAADAAAAAQAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-26T02:35:36.132Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "appsettings.Development.json",
               "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\POS.Api\\appsettings.Development.json",
               "RelativeDocumentMoniker": "POS.Api\\appsettings.Development.json",
               "ToolTip": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\POS.Api\\appsettings.Development.json",
               "RelativeToolTip": "POS.Api\\appsettings.Development.json",
-              "ViewState": "AgIAAAYAAAAAAAAAAAAuwCAAAAAbAAAAAAAAAA==",
+              "ViewState": "AgIAAAUAAAAAAAAAAAAswAkAAAAPAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-06-26T00:08:55.009Z"
+              "WhenOpened": "2026-06-26T00:08:55.009Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "appsettings.json",
               "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\POS.Api\\appsettings.json",
               "RelativeDocumentMoniker": "POS.Api\\appsettings.json",
@@ -82,11 +116,12 @@
               "RelativeToolTip": "POS.Api\\appsettings.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-06-25T02:56:30.117Z"
+              "WhenOpened": "2026-06-25T02:56:30.117Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
               "Title": "ConfigurationKeys.cs",
               "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\POS.Api\\Configuration\\ConfigurationKeys.cs",
               "RelativeDocumentMoniker": "POS.Api\\Configuration\\ConfigurationKeys.cs",
@@ -98,7 +133,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 6,
               "Title": "FileConfigurationProvider.cs",
               "DocumentMoniker": "C:\\Users\\pablo\\AppData\\Local\\Temp\\.vsdbgsrc\\369f0431ad69335100ff65af437b06ae8c246f8f2f20eea581d29b115b860ed4\\FileConfigurationProvider.cs",
               "ToolTip": "C:\\Users\\pablo\\AppData\\Local\\Temp\\.vsdbgsrc\\369f0431ad69335100ff65af437b06ae8c246f8f2f20eea581d29b115b860ed4\\FileConfigurationProvider.cs [Solo lectura]",
@@ -109,7 +144,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "Microsoft.WinFX.targets",
               "DocumentMoniker": "C:\\Program Files\\dotnet\\sdk\\10.0.301\\Sdks\\Microsoft.NET.Sdk.WindowsDesktop\\targets\\Microsoft.WinFX.targets",
               "ToolTip": "C:\\Program Files\\dotnet\\sdk\\10.0.301\\Sdks\\Microsoft.NET.Sdk.WindowsDesktop\\targets\\Microsoft.WinFX.targets",
@@ -119,7 +154,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 8,
               "Title": "VentasPage.xaml.cs",
               "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\VentasPage.xaml.cs",
               "RelativeDocumentMoniker": "PulperiaPOS\\VentasPage.xaml.cs",
@@ -131,7 +166,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 9,
               "Title": "VentasPage.xaml",
               "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\VentasPage.xaml",
               "RelativeDocumentMoniker": "PulperiaPOS\\VentasPage.xaml",
@@ -142,7 +177,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 10,
               "Title": "VentanaAdministrador.xaml",
               "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\VentanaAdministrador.xaml",
               "RelativeDocumentMoniker": "PulperiaPOS\\VentanaAdministrador.xaml",
@@ -153,7 +188,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 11,
               "Title": "MainWindow.xaml",
               "DocumentMoniker": "D:\\POSCRA\\Roble-main\\PulperiaPOS\\PulperiaPOS\\MainWindow.xaml",
               "RelativeDocumentMoniker": "PulperiaPOS\\MainWindow.xaml",

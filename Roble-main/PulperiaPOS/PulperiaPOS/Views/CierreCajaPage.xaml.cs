@@ -17,6 +17,7 @@ namespace PulperiaPOS.Views
             InitializeComponent();
             CalcularTotalesDelDia();
             CargarCierresAnteriores();
+            _ = CajaApiReadStatusViewHelper.LoadAsync(txtCajaApiStatus, nameof(CierreCajaPage));
         }
 
         private void CalcularTotalesDelDia()

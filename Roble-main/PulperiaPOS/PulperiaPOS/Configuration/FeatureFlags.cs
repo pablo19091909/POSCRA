@@ -46,5 +46,50 @@ namespace PulperiaPOS.Configuration
                 return bool.TryParse(configuredValue, out var enabled) && enabled;
             }
         }
+
+        public static bool UseCajaApiRead
+        {
+            get
+            {
+                var configuredValue = AppConfiguration.Current["FeatureFlags:UseCajaApiRead"];
+                return bool.TryParse(configuredValue, out var enabled) && enabled;
+            }
+        }
+
+        public static bool UseCajaApiOpenWrite
+        {
+            get
+            {
+                var configuredValue = AppConfiguration.Current["FeatureFlags:UseCajaApiOpenWrite"];
+                return bool.TryParse(configuredValue, out var enabled) && enabled;
+            }
+        }
+
+        public static bool UseCajaApiIngresoWrite
+        {
+            get
+            {
+                var configuredValue = AppConfiguration.Current["FeatureFlags:UseCajaApiIngresoWrite"];
+                return bool.TryParse(configuredValue, out var enabled) && enabled;
+            }
+        }
+
+        public static bool UseCajaApiRetiroWrite
+        {
+            get
+            {
+                var configuredValue = AppConfiguration.Current["FeatureFlags:UseCajaApiRetiroWrite"];
+                return bool.TryParse(configuredValue, out var enabled) && enabled;
+            }
+        }
+
+        public static bool UseCajaApiCierreWrite
+        {
+            get
+            {
+                var configuredValue = AppConfiguration.Current["FeatureFlags:UseCajaApiCierreWrite"];
+                return bool.TryParse(configuredValue, out var enabled) && enabled;
+            }
+        }
     }
 }

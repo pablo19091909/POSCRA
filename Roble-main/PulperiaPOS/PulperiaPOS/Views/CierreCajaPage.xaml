@@ -45,6 +45,13 @@
                            Foreground="White"
                            Margin="0,0,0,10"/>
 
+                <TextBlock Name="txtCajaApiStatus"
+                           Visibility="Collapsed"
+                           TextWrapping="Wrap"
+                           Foreground="#FFFFD966"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,14"/>
+
                 <TextBlock Text="Total en Efectivo:" Foreground="White"/>
                 <TextBox Name="txtEfectivo" IsReadOnly="True" Margin="0,0,0,10" TextChanged="txtEfectivo_TextChanged"/>
 
