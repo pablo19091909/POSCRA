@@ -21,7 +21,8 @@
 
         <!-- Encabezado con botón volver -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Grid.Row="0" Margin="0,0,0,10">
-            <Button Content="Volver"
+            <Button Name="btnVolver"
+                    Content="Volver"
                     Width="90"
                     Height="35"
                     Background="#fd7e14"
@@ -52,6 +53,19 @@
                            FontWeight="SemiBold"
                            Margin="0,0,0,14"/>
 
+                <TextBlock Name="txtCierreCajaModo"
+                           Text="Modo historico SQL para cierre de caja."
+                           TextWrapping="Wrap"
+                           Foreground="#FFFFD966"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,10"/>
+
+                <TextBlock Name="txtCierreCajaApiEstado"
+                           Visibility="Collapsed"
+                           TextWrapping="Wrap"
+                           Foreground="#FFFFD966"
+                           Margin="0,0,0,14"/>
+
                 <TextBlock Text="Total en Efectivo:" Foreground="White"/>
                 <TextBox Name="txtEfectivo" IsReadOnly="True" Margin="0,0,0,10" TextChanged="txtEfectivo_TextChanged"/>
 
@@ -64,7 +78,8 @@
                 <TextBlock Text="Observaciones:" Foreground="White"/>
                 <TextBox Name="txtObservaciones" Height="60" TextWrapping="Wrap" Margin="0,0,0,10" TextChanged="txtObservaciones_TextChanged"/>
 
-                <Button Content="Guardar Cierre"
+                <Button Name="btnGuardarCierre"
+                        Content="Guardar Cierre"
                         Click="GuardarCierre_Click"
                         Width="150"
                         Height="40"

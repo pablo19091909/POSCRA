@@ -74,7 +74,7 @@ namespace PulperiaPOS
                     if (resumen.Count > 0)
                     {
                         builder.Append(" Resumen: ");
-                        builder.Append(string.Join(", ", resumen.Select(item => $"{item.TipoMovimiento} {item.Cantidad}/{item.Total:N2}")));
+                        builder.Append(string.Join("; ", resumen.Select(item => $"{item.TipoMovimiento}: {item.Total:N2}")));
                         builder.Append('.');
                     }
                 }
@@ -108,7 +108,9 @@ namespace PulperiaPOS
                     "Logs");
                 Directory.CreateDirectory(logDirectory);
 
-                var apiBaseUrl = AppConfiguration.Current["Api:BaseUrl"] ?? "no_configurada";
+                var apiBaseUrlState = string.IsNullOrWhiteSpace(AppConfiguration.Current["Api:BaseUrl"])
+                    ? "no_configurada"
+                    : "configurada";
                 var tokenAvailable =
                     UserSession.IsApiAuthenticated &&
                     !string.IsNullOrWhiteSpace(UserSession.AccessToken) &&
@@ -122,7 +124,7 @@ namespace PulperiaPOS
                     $"Flag efectivo: {flagEnabled.ToString().ToLowerInvariant()}",
                     $"Pantalla: {screenName}",
                     $"Caja consultada: {CajaCodigoLectura}",
-                    $"API base URL: {apiBaseUrl}",
+                    $"API base URL: {apiBaseUrlState}",
                     $"Token disponible: {tokenAvailable.ToString().ToLowerInvariant()}",
                     $"Consulta iniciada: {queryStarted.ToString().ToLowerInvariant()}",
                     $"HTTP result: {httpResult}",

@@ -7,6 +7,13 @@ namespace POS.Api.Infrastructure.Data.Ventas;
 
 public sealed class VentaRepository : IVentaRepository
 {
+    private const string CajaCodigoVentaEfectivo = "CAJA_PRINCIPAL_TEST";
+    private const string TipoVentaEfectivo = "VentaEfectivo";
+    private const string EstadoTurnoAbierto = "Abierto";
+    private const string EstadoMovimientoConfirmado = "Confirmado";
+    private const string OrigenApi = "POS.Api";
+    private const string MonedaColones = "CRC";
+
     private readonly IDatabaseConnectionFactory connectionFactory;
 
     public VentaRepository(IDatabaseConnectionFactory connectionFactory)
@@ -60,6 +67,16 @@ public sealed class VentaRepository : IVentaRepository
             var idIdempotencia = idempotencia?.IdIdempotencia
                 ?? await InsertIdempotenciaAsync(connection, (SqlTransaction)transaction, command, cancellationToken);
 
+            long? idTurnoCaja = null;
+            if (command.IntegrarCajaEfectivo)
+            {
+                idTurnoCaja = await GetTurnoAbiertoCajaForUpdateAsync(
+                    connection,
+                    (SqlTransaction)transaction,
+                    CajaCodigoVentaEfectivo,
+                    cancellationToken);
+            }
+
             await EnsureUsuarioActivoAsync(connection, (SqlTransaction)transaction, command.UsuarioId, cancellationToken);
             await EnsureClienteExistsAsync(connection, (SqlTransaction)transaction, command.Request.ClienteId, cancellationToken);
 
@@ -98,7 +115,7 @@ public sealed class VentaRepository : IVentaRepository
                     cancellationToken);
             }
 
-            await InsertPagoAsync(
+            var idPago = await InsertPagoAsync(
                 connection,
                 (SqlTransaction)transaction,
                 factura,
@@ -106,6 +123,20 @@ public sealed class VentaRepository : IVentaRepository
                 payment,
                 fechaHoraUtc,
                 cancellationToken);
+
+            if (command.IntegrarCajaEfectivo)
+            {
+                await InsertMovimientoVentaEfectivoAsync(
+                    connection,
+                    (SqlTransaction)transaction,
+                    idTurnoCaja!.Value,
+                    factura,
+                    idPago,
+                    command.UsuarioId,
+                    payment.MontoVenta,
+                    fechaHoraUtc,
+                    cancellationToken);
+            }
 
             await InsertAuditoriaAsync(
                 connection,
@@ -256,6 +287,33 @@ public sealed class VentaRepository : IVentaRepository
         {
             throw new VentaBusinessException(VentaServiceStatus.Invalid, "Cliente no encontrado.");
         }
+    }
+
+    private static async Task<long> GetTurnoAbiertoCajaForUpdateAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        string cajaCodigo,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT TOP (1) idTurno
+            FROM dbo.caja_turno WITH (UPDLOCK, HOLDLOCK)
+            WHERE caja_codigo = @caja_codigo
+              AND estado = @estado_abierto
+            ORDER BY apertura_utc DESC, idTurno DESC;
+            """;
+
+        await using var command = new SqlCommand(sql, connection, transaction);
+        command.Parameters.Add("@caja_codigo", SqlDbType.NVarChar, 50).Value = cajaCodigo;
+        command.Parameters.Add("@estado_abierto", SqlDbType.NVarChar, 20).Value = EstadoTurnoAbierto;
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        if (result is null || result == DBNull.Value)
+        {
+            throw new VentaBusinessException(VentaServiceStatus.Invalid, "No hay un turno abierto para registrar venta en efectivo.");
+        }
+
+        return Convert.ToInt64(result);
     }
 
     private static async Task<IReadOnlyCollection<VentaTransactionItem>> LoadItemsForUpdateAsync(
@@ -481,7 +539,7 @@ public sealed class VentaRepository : IVentaRepository
         }
     }
 
-    private static async Task InsertPagoAsync(
+    private static async Task<long> InsertPagoAsync(
         SqlConnection connection,
         SqlTransaction transaction,
         int factura,
@@ -493,6 +551,7 @@ public sealed class VentaRepository : IVentaRepository
         const string sql = """
             INSERT INTO dbo.venta_pago
                 (factura, metodo_pago, moneda, monto, monto_recibido, vuelto, tipo_cambio_aplicado, referencia, voucher, fecha_hora_utc, usuario_id, estado)
+            OUTPUT INSERTED.idPago
             VALUES
                 (@factura, @metodo_pago, @moneda, @monto, @monto_recibido, @vuelto, @tipo_cambio_aplicado, @referencia, @voucher, @fecha_hora_utc, @usuario_id, N'Registrado');
             """;
@@ -517,6 +576,76 @@ public sealed class VentaRepository : IVentaRepository
         command.Parameters.Add("@voucher", SqlDbType.NVarChar, 100).Value = (object?)payment.Voucher ?? DBNull.Value;
         command.Parameters.Add("@fecha_hora_utc", SqlDbType.DateTime2).Value = fechaHoraUtc;
         command.Parameters.Add("@usuario_id", SqlDbType.Int).Value = usuarioId;
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt64(result);
+    }
+
+    private static async Task InsertMovimientoVentaEfectivoAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        long idTurno,
+        int factura,
+        long idPago,
+        int usuarioId,
+        decimal monto,
+        DateTime fechaHoraUtc,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            INSERT INTO dbo.movimiento_caja (
+                idTurno,
+                tipo_movimiento,
+                origen,
+                monto,
+                moneda,
+                fecha_hora_utc,
+                usuario_id,
+                factura,
+                pago_id,
+                ingreso_caja_id,
+                retiro_caja_id,
+                referencia,
+                observacion,
+                estado,
+                reversa_de_movimiento_id,
+                correlacion_tecnica,
+                creado_utc)
+            VALUES (
+                @idTurno,
+                @tipo_movimiento,
+                @origen,
+                @monto,
+                @moneda,
+                @fecha_hora_utc,
+                @usuario_id,
+                @factura,
+                @pago_id,
+                NULL,
+                NULL,
+                @referencia,
+                @observacion,
+                @estado,
+                NULL,
+                NEWID(),
+                SYSUTCDATETIME());
+            """;
+
+        await using var command = new SqlCommand(sql, connection, transaction);
+        command.Parameters.Add("@idTurno", SqlDbType.BigInt).Value = idTurno;
+        command.Parameters.Add("@tipo_movimiento", SqlDbType.NVarChar, 30).Value = TipoVentaEfectivo;
+        command.Parameters.Add("@origen", SqlDbType.NVarChar, 30).Value = OrigenApi;
+        command.Parameters.Add("@monto", SqlDbType.Decimal).Value = monto;
+        command.Parameters["@monto"].Precision = 18;
+        command.Parameters["@monto"].Scale = 2;
+        command.Parameters.Add("@moneda", SqlDbType.Char, 3).Value = MonedaColones;
+        command.Parameters.Add("@fecha_hora_utc", SqlDbType.DateTime2).Value = fechaHoraUtc;
+        command.Parameters.Add("@usuario_id", SqlDbType.Int).Value = usuarioId;
+        command.Parameters.Add("@factura", SqlDbType.Int).Value = factura;
+        command.Parameters.Add("@pago_id", SqlDbType.BigInt).Value = idPago;
+        command.Parameters.Add("@referencia", SqlDbType.NVarChar, 100).Value = "VentaEfectivo";
+        command.Parameters.Add("@observacion", SqlDbType.NVarChar, 250).Value = "Venta API efectivo";
+        command.Parameters.Add("@estado", SqlDbType.NVarChar, 20).Value = EstadoMovimientoConfirmado;
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

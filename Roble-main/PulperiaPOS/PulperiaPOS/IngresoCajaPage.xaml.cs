@@ -17,12 +17,16 @@ namespace PulperiaPOS
     public partial class IngresoCajaPage : Window
     {
         private const string CajaCodigoAperturaApi = "CAJA_PRINCIPAL_TEST";
+        private const string CajaCodigoIngresoApi = "CAJA_PRINCIPAL_TEST";
+        private const int MaxIngresoApiTextLength = 250;
         private readonly CajaOperationCoordinator aperturaTurnoCoordinator = new();
+        private readonly CajaOperationCoordinator ingresoCajaCoordinator = new();
 
         public IngresoCajaPage()
         {
             InitializeComponent();
             ConfigureAperturaTurnoApi();
+            ConfigureIngresoCajaMode();
             CargarIngresos();
             CalcularDineroEnCaja();
             _ = CajaApiReadStatusViewHelper.LoadAsync(txtCajaApiStatus, nameof(IngresoCajaPage));
@@ -44,6 +48,23 @@ namespace PulperiaPOS
             panelAperturaTurnoApi.Visibility = Visibility.Visible;
             txtAperturaTurnoApiEstado.Text = $"Caja API activa para apertura. Caja: {CajaCodigoAperturaApi}.";
             txtFondoInicialTurnoApi.Text = "1000";
+        }
+
+        private void ConfigureIngresoCajaMode()
+        {
+            if (!FeatureFlags.UseCajaApiIngresoWrite)
+            {
+                txtIngresoCajaModo.Text = "Modo historico SQL para registro de ingresos.";
+                txtIngresoCajaApiEstado.Visibility = Visibility.Collapsed;
+                panelReferenciaIngresoApi.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            txtIngresoCajaModo.Text = $"Modo Caja API para registro de ingresos. Caja: {CajaCodigoIngresoApi}.";
+            txtIngresoCajaApiEstado.Visibility = Visibility.Visible;
+            txtIngresoCajaApiEstado.Text = "Caja API: validando turno abierto antes de registrar ingresos.";
+            panelReferenciaIngresoApi.Visibility = Visibility.Visible;
+            _ = RefreshIngresoCajaApiStateAsync();
         }
 
         private async void AbrirTurnoApi_Click(object sender, RoutedEventArgs e)
@@ -182,6 +203,17 @@ namespace PulperiaPOS
 
         private void RegistrarIngreso_Click(object sender, RoutedEventArgs e)
         {
+            if (FeatureFlags.UseCajaApiIngresoWrite)
+            {
+                _ = RegistrarIngresoCajaApiAsync();
+                return;
+            }
+
+            RegistrarIngresoHistoricoSql();
+        }
+
+        private void RegistrarIngresoHistoricoSql()
+        {
             if (!double.TryParse(txtMontoIngreso.Text, out double monto))
             {
                 MessageBox.Show("Ingrese un monto válido.");
@@ -218,6 +250,232 @@ namespace PulperiaPOS
             {
                 MessageBox.Show("Error al registrar ingreso: " + ex.Message);
             }
+        }
+
+        private async Task RegistrarIngresoCajaApiAsync()
+        {
+            if (!TryBuildIngresoCajaApiViewModel(out var viewModel))
+            {
+                return;
+            }
+
+            var intentFingerprint = string.Join(
+                "|",
+                viewModel.CajaCodigo,
+                viewModel.Monto.ToString("0.00", CultureInfo.InvariantCulture),
+                viewModel.Motivo,
+                viewModel.Referencia ?? string.Empty,
+                UserSession.IdUsuario);
+            var operation = ingresoCajaCoordinator.GetOrCreate("IngresoCaja", intentFingerprint);
+
+            if (!ingresoCajaCoordinator.TryBegin(operation))
+            {
+                MessageBox.Show("El ingreso de caja ya esta en proceso.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            SetIngresoCajaApiBusy(true);
+            txtIngresoCajaApiEstado.Text = "Caja API: registrando ingreso...";
+
+            try
+            {
+                using var client = new CajaApiClient();
+                var turnoResult = await client.GetTurnoAbiertoAsync(CajaCodigoIngresoApi);
+                if (!turnoResult.Success)
+                {
+                    ingresoCajaCoordinator.Clear(operation);
+                    ShowIngresoCajaApiError(turnoResult.ErrorType);
+                    return;
+                }
+
+                if (turnoResult.Data is null)
+                {
+                    ingresoCajaCoordinator.Clear(operation);
+                    txtIngresoCajaApiEstado.Text = "Caja API: No hay un turno abierto para registrar el ingreso.";
+                    MessageBox.Show("No hay un turno abierto para registrar el ingreso.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var request = new CajaIngresoRequest
+                {
+                    CajaCodigo = viewModel.CajaCodigo,
+                    Monto = viewModel.Monto,
+                    Motivo = viewModel.Motivo,
+                    Referencia = viewModel.Referencia
+                };
+
+                var result = await client.RegistrarIngresoAsync(
+                    request,
+                    operation.IdempotencyKey.ToString("D"),
+                    CancellationToken.None);
+
+                await HandleIngresoCajaApiResultAsync(result, operation);
+            }
+            finally
+            {
+                SetIngresoCajaApiBusy(false);
+            }
+        }
+
+        private bool TryBuildIngresoCajaApiViewModel(out CajaIngresoViewModel viewModel)
+        {
+            viewModel = new CajaIngresoViewModel();
+
+            if (!decimal.TryParse(txtMontoIngreso.Text, NumberStyles.Number, CultureInfo.CurrentCulture, out var monto) &&
+                !decimal.TryParse(txtMontoIngreso.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out monto))
+            {
+                MessageBox.Show("Ingrese un monto valido.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (monto <= 0)
+            {
+                MessageBox.Show("El monto debe ser mayor que cero.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            var motivo = txtMotivoIngreso.Text.Trim();
+            if (string.IsNullOrWhiteSpace(motivo))
+            {
+                MessageBox.Show("Ingrese un motivo para el ingreso.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (motivo.Length > MaxIngresoApiTextLength)
+            {
+                MessageBox.Show("El motivo es demasiado largo.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            var referencia = txtReferenciaIngresoApi.Text.Trim();
+            if (referencia.Length > MaxIngresoApiTextLength)
+            {
+                MessageBox.Show("La referencia es demasiado larga.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            viewModel = new CajaIngresoViewModel
+            {
+                CajaCodigo = CajaCodigoIngresoApi,
+                Monto = monto,
+                Motivo = motivo,
+                Referencia = string.IsNullOrWhiteSpace(referencia) ? null : referencia
+            };
+            return true;
+        }
+
+        private async Task HandleIngresoCajaApiResultAsync(
+            ApiRequestResult<MovimientoCajaApiResponse> result,
+            PendingCajaOperation operation)
+        {
+            if (result.Success && result.Data is not null)
+            {
+                ingresoCajaCoordinator.Clear(operation);
+                txtIngresoCajaApiEstado.Text = "Caja API: ingreso registrado correctamente.";
+                MessageBox.Show("El ingreso fue registrado correctamente por Caja API.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Information);
+                txtMontoIngreso.Clear();
+                txtMotivoIngreso.Clear();
+                txtReferenciaIngresoApi.Clear();
+                await RefreshIngresoCajaApiStateAsync();
+                return;
+            }
+
+            if (result.ErrorType == ApiErrorType.Timeout)
+            {
+                ingresoCajaCoordinator.MarkResultUncertain(operation);
+                txtIngresoCajaApiEstado.Text =
+                    "Caja API: No fue posible confirmar el resultado de la operacion. Revise la conexion y reintente sin cambiar los datos.";
+                MessageBox.Show(
+                    "No fue posible confirmar el resultado de la operacion. Revise la conexion y reintente sin cambiar los datos.",
+                    "Caja API",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            if (result.ErrorType == ApiErrorType.Network)
+            {
+                ingresoCajaCoordinator.MarkReadyForRetry(operation);
+                txtIngresoCajaApiEstado.Text =
+                    "Caja API: No fue posible comunicarse con el servicio de caja. Intente nuevamente.";
+                MessageBox.Show(
+                    "No fue posible comunicarse con el servicio de caja. Intente nuevamente.",
+                    "Caja API",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            ingresoCajaCoordinator.Clear(operation);
+            ShowIngresoCajaApiError(result.ErrorType);
+        }
+
+        private async Task RefreshIngresoCajaApiStateAsync()
+        {
+            if (!FeatureFlags.UseCajaApiIngresoWrite)
+            {
+                return;
+            }
+
+            try
+            {
+                using var client = new CajaApiClient();
+                var turnoResult = await client.GetTurnoAbiertoAsync(CajaCodigoIngresoApi);
+                if (!turnoResult.Success)
+                {
+                    txtIngresoCajaApiEstado.Text = $"Caja API: {ToIngresoCajaSafeMessage(turnoResult.ErrorType)}";
+                    return;
+                }
+
+                if (turnoResult.Data is null)
+                {
+                    txtIngresoCajaApiEstado.Text = "Caja API: No hay un turno abierto para registrar el ingreso.";
+                    return;
+                }
+
+                var preCierreResult = await client.GetPreCierreAsync(turnoResult.Data.IdTurno);
+                if (preCierreResult.Success && preCierreResult.Data is not null)
+                {
+                    txtIngresoCajaApiEstado.Text =
+                        $"Caja API: turno {turnoResult.Data.Estado}. Efectivo esperado: {preCierreResult.Data.EfectivoEsperado:N2}.";
+                    return;
+                }
+
+                txtIngresoCajaApiEstado.Text = $"Caja API: turno {turnoResult.Data.Estado}.";
+            }
+            catch
+            {
+                txtIngresoCajaApiEstado.Text = "Caja API: No fue posible consultar el estado de caja.";
+            }
+        }
+
+        private void ShowIngresoCajaApiError(ApiErrorType errorType)
+        {
+            var message = ToIngresoCajaSafeMessage(errorType);
+            txtIngresoCajaApiEstado.Text = $"Caja API: {message}";
+            MessageBox.Show(message, "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private static string ToIngresoCajaSafeMessage(ApiErrorType errorType)
+        {
+            return errorType switch
+            {
+                ApiErrorType.Conflict => "No hay un turno abierto para registrar el ingreso.",
+                ApiErrorType.Unauthorized or ApiErrorType.SessionExpired => "Su sesion ha vencido. Inicie sesion nuevamente.",
+                ApiErrorType.Forbidden => "No tiene permiso para registrar ingresos de caja.",
+                ApiErrorType.NotFound => "No hay un turno abierto para registrar el ingreso.",
+                ApiErrorType.Configuration => "El registro de ingresos por API no esta habilitado para este ambiente.",
+                ApiErrorType.ServiceError => "No fue posible comunicarse con el servicio de caja. Intente nuevamente.",
+                _ => CajaApiErrorMapper.ToSafeUserMessage(errorType)
+            };
+        }
+
+        private void SetIngresoCajaApiBusy(bool isBusy)
+        {
+            btnRegistrarIngreso.IsEnabled = !isBusy;
+            txtMontoIngreso.IsEnabled = !isBusy;
+            txtMotivoIngreso.IsEnabled = !isBusy;
+            txtReferenciaIngresoApi.IsEnabled = !isBusy;
         }
 
         private void CargarIngresos()

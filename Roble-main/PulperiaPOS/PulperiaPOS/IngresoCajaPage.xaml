@@ -47,6 +47,18 @@
                            FontWeight="SemiBold"
                            Margin="0,0,0,14"/>
 
+                <TextBlock Name="txtIngresoCajaModo"
+                           TextWrapping="Wrap"
+                           Foreground="#FFFFD966"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,8"/>
+
+                <TextBlock Name="txtIngresoCajaApiEstado"
+                           Visibility="Collapsed"
+                           TextWrapping="Wrap"
+                           Foreground="White"
+                           Margin="0,0,0,12"/>
+
                 <StackPanel Name="panelAperturaTurnoApi"
                             Visibility="Collapsed"
                             Margin="0,0,0,20">
@@ -81,7 +93,15 @@
                 <TextBlock Text="Motivo del Ingreso:" Foreground="White"/>
                 <TextBox Name="txtMotivoIngreso" Height="60" TextWrapping="Wrap" Margin="0,0,0,20"/>
 
-                <Button Content="Registrar Ingreso"
+                <StackPanel Name="panelReferenciaIngresoApi"
+                            Visibility="Collapsed"
+                            Margin="0,0,0,12">
+                    <TextBlock Text="Referencia API opcional:" Foreground="White"/>
+                    <TextBox Name="txtReferenciaIngresoApi" Margin="0,0,0,0"/>
+                </StackPanel>
+
+                <Button Name="btnRegistrarIngreso"
+                        Content="Registrar Ingreso"
                         Click="RegistrarIngreso_Click"
                         Width="160"
                         Height="40"

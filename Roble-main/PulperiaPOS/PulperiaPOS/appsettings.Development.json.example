@@ -9,6 +9,7 @@
     "UseVentasClienteSelectorApi": false,
     "UseVentasProductosApi": false,
     "UseVentasApiWrite": false,
+    "UseVentasApiEfectivoWrite": false,
     "UseCajaApiRead": true,
     "UseCajaApiOpenWrite": false,
     "UseCajaApiIngresoWrite": false,

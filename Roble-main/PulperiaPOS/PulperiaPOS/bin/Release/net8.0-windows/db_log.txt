@@ -11,3 +11,4 @@
 [24/6/2026 18:32:22] Error al abrir conexion: SqlException
 [24/6/2026 18:33:29] Error al abrir conexion: SqlException
 [24/6/2026 18:34:04] Error al abrir conexion: SqlException
+[30/6/2026 18:00:22] Error al abrir conexion: SqlException

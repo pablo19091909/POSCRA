@@ -48,6 +48,12 @@ public sealed class VentaService : IVentaService
             return VentaServiceResult.Disabled();
         }
 
+        if (IsEfectivoRequest(request) &&
+            (!featureFlags.EnableCajaApiWrite || !featureFlags.EnableVentasApiEfectivoCajaWrite))
+        {
+            return VentaServiceResult.Disabled();
+        }
+
         if (!await environmentSafetyService.CanWriteVentasAsync(cancellationToken))
         {
             return VentaServiceResult.Disabled();
@@ -60,9 +66,22 @@ public sealed class VentaService : IVentaService
         }
 
         var requestHash = idempotenciaVentaService.ComputeRequestHash(request!);
-        var command = new CrearVentaPreparedCommand(request!, usuarioId, requestHash, traceId);
+        var command = new CrearVentaPreparedCommand(
+            request!,
+            usuarioId,
+            requestHash,
+            traceId,
+            IntegrarCajaEfectivo: IsEfectivoRequest(request));
 
         return await ventaRepository.CreateVentaTransactionalAsync(command, cancellationToken);
+    }
+
+    private static bool IsEfectivoRequest(CrearVentaRequest? request)
+    {
+        return string.Equals(
+            request?.Pago?.MetodoPago?.Trim(),
+            "Efectivo",
+            StringComparison.Ordinal);
     }
 
     private static IReadOnlyCollection<string> ValidateRequestShape(CrearVentaRequest? request)

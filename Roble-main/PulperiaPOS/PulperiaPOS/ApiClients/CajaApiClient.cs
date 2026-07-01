@@ -55,6 +55,58 @@ namespace PulperiaPOS.ApiClients
                 cancellationToken: cancellationToken);
         }
 
+        public Task<ApiRequestResult<MovimientoCajaApiResponse>> RegistrarIngresoAsync(
+            CajaIngresoRequest request,
+            string idempotencyKey,
+            CancellationToken cancellationToken = default)
+        {
+            if (!FeatureFlags.UseCajaApiIngresoWrite)
+            {
+                return Task.FromResult(ApiRequestResult<MovimientoCajaApiResponse>.Failed(
+                    ApiErrorType.Configuration,
+                    "El registro de ingresos por Caja API esta deshabilitado."));
+            }
+
+            var headers = new Dictionary<string, string>
+            {
+                ["Idempotency-Key"] = idempotencyKey
+            };
+
+            return SendAsync<MovimientoCajaApiResponse>(
+                HttpMethod.Post,
+                "api/caja/ingresos",
+                requiresAuthentication: true,
+                body: request,
+                headers: headers,
+                cancellationToken: cancellationToken);
+        }
+
+        public Task<ApiRequestResult<MovimientoCajaApiResponse>> RegistrarRetiroAsync(
+            CajaRetiroRequest request,
+            string idempotencyKey,
+            CancellationToken cancellationToken = default)
+        {
+            if (!FeatureFlags.UseCajaApiRetiroWrite)
+            {
+                return Task.FromResult(ApiRequestResult<MovimientoCajaApiResponse>.Failed(
+                    ApiErrorType.Configuration,
+                    "El registro de retiros por Caja API esta deshabilitado."));
+            }
+
+            var headers = new Dictionary<string, string>
+            {
+                ["Idempotency-Key"] = idempotencyKey
+            };
+
+            return SendAsync<MovimientoCajaApiResponse>(
+                HttpMethod.Post,
+                "api/caja/retiros",
+                requiresAuthentication: true,
+                body: request,
+                headers: headers,
+                cancellationToken: cancellationToken);
+        }
+
         public Task<ApiRequestResult<IReadOnlyCollection<MovimientoCajaApiResponse>>> GetMovimientosAsync(
             long idTurno,
             CancellationToken cancellationToken = default)
@@ -88,6 +140,33 @@ namespace PulperiaPOS.ApiClients
                 HttpMethod.Get,
                 $"api/caja/turnos/{idTurno}/pre-cierre",
                 requiresAuthentication: true,
+                cancellationToken: cancellationToken);
+        }
+
+        public Task<ApiRequestResult<CierreCajaApiResponse>> CerrarTurnoAsync(
+            long idTurno,
+            CajaCierreRequest request,
+            string idempotencyKey,
+            CancellationToken cancellationToken = default)
+        {
+            if (!FeatureFlags.UseCajaApiCierreWrite)
+            {
+                return Task.FromResult(ApiRequestResult<CierreCajaApiResponse>.Failed(
+                    ApiErrorType.Configuration,
+                    "El cierre de turno por Caja API esta deshabilitado."));
+            }
+
+            var headers = new Dictionary<string, string>
+            {
+                ["Idempotency-Key"] = idempotencyKey
+            };
+
+            return SendAsync<CierreCajaApiResponse>(
+                HttpMethod.Post,
+                $"api/caja/turnos/{idTurno}/cerrar",
+                requiresAuthentication: true,
+                body: request,
+                headers: headers,
                 cancellationToken: cancellationToken);
         }
     }

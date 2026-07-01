@@ -1,10 +1,17 @@
 ﻿using PulperiaPOS.DataAccess;
+using PulperiaPOS.ApiClients;
+using PulperiaPOS.Configuration;
+using PulperiaPOS.Models.Api;
+using PulperiaPOS.Models.Caja;
 using PulperiaPOS.Views;
 using System;
 using System.Data;
 using System.Data.SqlClient;
 using System.Drawing.Printing;
+using System.Globalization;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -12,12 +19,39 @@ namespace PulperiaPOS.Views
 {
     public partial class CierreCajaPage : Window
     {
+        private const string CajaCodigoCierreApi = "CAJA_PRINCIPAL_TEST";
+        private const int MaxCierreApiTextLength = 250;
+        private readonly CajaOperationCoordinator cierreCajaCoordinator = new();
+        private long? cierreApiTurnoId;
+        private string? cierreApiRowVersion;
+        private decimal? cierreApiEfectivoEsperado;
+
         public CierreCajaPage()
         {
             InitializeComponent();
-            CalcularTotalesDelDia();
-            CargarCierresAnteriores();
+            ConfigureCierreCajaMode();
             _ = CajaApiReadStatusViewHelper.LoadAsync(txtCajaApiStatus, nameof(CierreCajaPage));
+        }
+
+        private void ConfigureCierreCajaMode()
+        {
+            if (!FeatureFlags.UseCajaApiCierreWrite)
+            {
+                txtCierreCajaModo.Text = "Modo historico SQL para cierre de caja.";
+                txtCierreCajaApiEstado.Visibility = Visibility.Collapsed;
+                CalcularTotalesDelDia();
+                CargarCierresAnteriores();
+                return;
+            }
+
+            txtCierreCajaModo.Text = $"Modo Caja API para cierre de turno. Caja: {CajaCodigoCierreApi}.";
+            txtCierreCajaApiEstado.Visibility = Visibility.Visible;
+            txtCierreCajaApiEstado.Text = "Caja API: consultando pre-cierre...";
+            txtEfectivo.IsReadOnly = false;
+            txtSinpe.IsReadOnly = true;
+            txtDatafono.IsReadOnly = true;
+            dgCierres.ItemsSource = null;
+            _ = RefreshCierreCajaApiStateAsync();
         }
 
         private void CalcularTotalesDelDia()
@@ -79,6 +113,12 @@ namespace PulperiaPOS.Views
 
         private void GuardarCierre_Click(object sender, RoutedEventArgs e)
         {
+            if (FeatureFlags.UseCajaApiCierreWrite)
+            {
+                _ = CerrarTurnoCajaApiAsync();
+                return;
+            }
+
             RawPrinterHelper.AbrirCajaDesdePOS58();
 
             var confirmacion = MessageBox.Show(
@@ -220,6 +260,284 @@ namespace PulperiaPOS.Views
         private void BtnVolver_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
+        }
+
+        private async Task CerrarTurnoCajaApiAsync()
+        {
+            if (!TryBuildCierreCajaApiViewModel(out var viewModel))
+            {
+                return;
+            }
+
+            var intentFingerprint = string.Join(
+                "|",
+                viewModel.IdTurno.ToString(CultureInfo.InvariantCulture),
+                viewModel.EfectivoContado.ToString("0.00", CultureInfo.InvariantCulture),
+                viewModel.Observacion ?? string.Empty,
+                viewModel.RowVersion,
+                UserSession.IdUsuario);
+            var operation = cierreCajaCoordinator.GetOrCreate("CerrarTurno", intentFingerprint);
+
+            if (!cierreCajaCoordinator.TryBegin(operation))
+            {
+                MessageBox.Show("El cierre de caja ya esta en proceso.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            SetCierreCajaApiBusy(true);
+            txtCierreCajaApiEstado.Text = "Caja API: cerrando turno...";
+
+            try
+            {
+                var diferenciaEstimada = viewModel.EfectivoContado - viewModel.EfectivoEsperadoEstimado;
+                var confirmacion = MessageBox.Show(
+                    "Se cerrara el turno de caja mediante Caja API.\n\n" +
+                    "Esta operacion es irreversible.\n\n" +
+                    $"Efectivo esperado: {viewModel.EfectivoEsperadoEstimado:N2}\n" +
+                    $"Efectivo contado: {viewModel.EfectivoContado:N2}\n" +
+                    $"Diferencia estimada: {diferenciaEstimada:N2}\n\n" +
+                    "Desea confirmar el cierre?",
+                    "Confirmar cierre Caja API",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (confirmacion != MessageBoxResult.Yes)
+                {
+                    cierreCajaCoordinator.Clear(operation);
+                    txtCierreCajaApiEstado.Text = "Caja API: cierre cancelado por el operador.";
+                    return;
+                }
+
+                var request = new CajaCierreRequest
+                {
+                    EfectivoContado = viewModel.EfectivoContado,
+                    Observacion = viewModel.Observacion,
+                    RowVersion = viewModel.RowVersion
+                };
+
+                using var client = new CajaApiClient();
+                var result = await client.CerrarTurnoAsync(
+                    viewModel.IdTurno,
+                    request,
+                    operation.IdempotencyKey.ToString("D"),
+                    CancellationToken.None);
+
+                await HandleCerrarTurnoApiResultAsync(result, operation);
+            }
+            finally
+            {
+                SetCierreCajaApiBusy(false);
+            }
+        }
+
+        private bool TryBuildCierreCajaApiViewModel(out CajaCierreViewModel viewModel)
+        {
+            viewModel = new CajaCierreViewModel();
+
+            if (!cierreApiTurnoId.HasValue)
+            {
+                MessageBox.Show("No hay un turno abierto para cerrar.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (!decimal.TryParse(txtEfectivo.Text, NumberStyles.Number, CultureInfo.CurrentCulture, out var efectivoContado) &&
+                !decimal.TryParse(txtEfectivo.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out efectivoContado))
+            {
+                MessageBox.Show("El efectivo contado debe ser un valor valido.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (efectivoContado < 0)
+            {
+                MessageBox.Show("El efectivo contado debe ser un valor valido.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (!IsValidRowVersion(cierreApiRowVersion))
+            {
+                MessageBox.Show("La informacion del turno cambio. Actualice la pantalla antes de cerrar.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            var observacion = txtObservaciones.Text.Trim();
+            if (observacion.Length > MaxCierreApiTextLength)
+            {
+                MessageBox.Show("La observacion es demasiado larga.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            var diferenciaEstimada = efectivoContado - (cierreApiEfectivoEsperado ?? 0m);
+            if (diferenciaEstimada != 0m && string.IsNullOrWhiteSpace(observacion))
+            {
+                MessageBox.Show("Debe indicar una observacion para justificar la diferencia de cierre.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            viewModel = new CajaCierreViewModel
+            {
+                IdTurno = cierreApiTurnoId.Value,
+                EfectivoContado = efectivoContado,
+                Observacion = string.IsNullOrWhiteSpace(observacion) ? null : observacion,
+                RowVersion = cierreApiRowVersion!,
+                EfectivoEsperadoEstimado = cierreApiEfectivoEsperado ?? 0m
+            };
+            return true;
+        }
+
+        private async Task HandleCerrarTurnoApiResultAsync(
+            ApiRequestResult<CierreCajaApiResponse> result,
+            PendingCajaOperation operation)
+        {
+            if (result.Success && result.Data is not null)
+            {
+                cierreCajaCoordinator.Clear(operation);
+                txtCierreCajaApiEstado.Text = "Caja API: cierre registrado correctamente.";
+                MessageBox.Show("El cierre fue registrado correctamente por Caja API.", "Caja API", MessageBoxButton.OK, MessageBoxImage.Information);
+                await RefreshCierreCajaApiStateAsync();
+                return;
+            }
+
+            if (result.ErrorType == ApiErrorType.Timeout)
+            {
+                cierreCajaCoordinator.MarkResultUncertain(operation);
+                txtCierreCajaApiEstado.Text =
+                    "Caja API: No fue posible confirmar el resultado del cierre. Revise la conexion y reintente sin cambiar los datos.";
+                MessageBox.Show(
+                    "No fue posible confirmar el resultado del cierre. Revise la conexion y reintente sin cambiar los datos.",
+                    "Caja API",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            if (result.ErrorType == ApiErrorType.Network)
+            {
+                cierreCajaCoordinator.MarkReadyForRetry(operation);
+                txtCierreCajaApiEstado.Text =
+                    "Caja API: No fue posible comunicarse con el servicio de caja. Intente nuevamente.";
+                MessageBox.Show(
+                    "No fue posible comunicarse con el servicio de caja. Intente nuevamente.",
+                    "Caja API",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            cierreCajaCoordinator.Clear(operation);
+            ShowCierreCajaApiError(result.ErrorType);
+        }
+
+        private async Task RefreshCierreCajaApiStateAsync()
+        {
+            if (!FeatureFlags.UseCajaApiCierreWrite)
+            {
+                return;
+            }
+
+            try
+            {
+                using var client = new CajaApiClient();
+                var turnoResult = await client.GetTurnoAbiertoAsync(CajaCodigoCierreApi);
+                if (!turnoResult.Success)
+                {
+                    txtCierreCajaApiEstado.Text = $"Caja API: {ToCierreCajaSafeMessage(turnoResult.ErrorType)}";
+                    return;
+                }
+
+                if (turnoResult.Data is null)
+                {
+                    cierreApiTurnoId = null;
+                    cierreApiRowVersion = null;
+                    cierreApiEfectivoEsperado = null;
+                    txtCierreCajaApiEstado.Text = "Caja API: No hay un turno abierto para cerrar.";
+                    return;
+                }
+
+                var preCierreResult = await client.GetPreCierreAsync(turnoResult.Data.IdTurno);
+                if (!preCierreResult.Success || preCierreResult.Data is null)
+                {
+                    txtCierreCajaApiEstado.Text = $"Caja API: {ToCierreCajaSafeMessage(preCierreResult.ErrorType)}";
+                    return;
+                }
+
+                cierreApiTurnoId = preCierreResult.Data.IdTurno;
+                cierreApiRowVersion = preCierreResult.Data.RowVersion;
+                cierreApiEfectivoEsperado = preCierreResult.Data.EfectivoEsperado;
+                txtEfectivo.Text = preCierreResult.Data.EfectivoEsperado.ToString("N2");
+                txtSinpe.Text = "0.00";
+                txtDatafono.Text = "0.00";
+                txtCierreCajaApiEstado.Text = BuildPreCierreApiStatus(preCierreResult.Data);
+            }
+            catch
+            {
+                txtCierreCajaApiEstado.Text = "Caja API: No fue posible comunicarse con el servicio de caja. Intente nuevamente.";
+            }
+        }
+
+        private static string BuildPreCierreApiStatus(PreCierreCajaApiResponse preCierre)
+        {
+            var ingresos = 0m;
+            var retiros = 0m;
+            foreach (var item in preCierre.Resumen)
+            {
+                if (string.Equals(item.TipoMovimiento, "IngresoCaja", StringComparison.OrdinalIgnoreCase))
+                {
+                    ingresos += item.Total;
+                }
+                else if (string.Equals(item.TipoMovimiento, "RetiroCaja", StringComparison.OrdinalIgnoreCase))
+                {
+                    retiros += item.Total;
+                }
+            }
+
+            return $"Caja API: turno {preCierre.Estado}. Ingresos {ingresos:N2}. Retiros {retiros:N2}. Efectivo esperado {preCierre.EfectivoEsperado:N2}. Diferencia visual estimada; el resultado oficial lo calcula API.";
+        }
+
+        private void ShowCierreCajaApiError(ApiErrorType errorType)
+        {
+            var message = ToCierreCajaSafeMessage(errorType);
+            txtCierreCajaApiEstado.Text = $"Caja API: {message}";
+            MessageBox.Show(message, "Caja API", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private static string ToCierreCajaSafeMessage(ApiErrorType errorType)
+        {
+            return errorType switch
+            {
+                ApiErrorType.BadRequest => "La solicitud de cierre no es valida.",
+                ApiErrorType.Conflict => "La informacion del turno cambio. Actualice la pantalla antes de cerrar.",
+                ApiErrorType.Unauthorized or ApiErrorType.SessionExpired => "Su sesion ha vencido. Inicie sesion nuevamente.",
+                ApiErrorType.Forbidden => "No tiene permiso para cerrar turnos de caja.",
+                ApiErrorType.NotFound => "No hay un turno abierto para cerrar.",
+                ApiErrorType.Configuration => "El cierre por API no esta habilitado para este ambiente.",
+                ApiErrorType.ServiceError => "No fue posible comunicarse con el servicio de caja. Intente nuevamente.",
+                _ => CajaApiErrorMapper.ToSafeUserMessage(errorType)
+            };
+        }
+
+        private void SetCierreCajaApiBusy(bool isBusy)
+        {
+            btnGuardarCierre.IsEnabled = !isBusy;
+            btnVolver.IsEnabled = !isBusy;
+            txtEfectivo.IsEnabled = !isBusy;
+            txtObservaciones.IsEnabled = !isBusy;
+        }
+
+        private static bool IsValidRowVersion(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            try
+            {
+                return Convert.FromBase64String(value.Trim()).Length == 8;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
 
         private void txtEfectivo_TextChanged(object sender, TextChangedEventArgs e)

@@ -51,6 +51,17 @@
                            Foreground="#FFFFD966"
                            FontWeight="SemiBold"
                            Margin="0,0,0,14"/>
+                <TextBlock Name="txtRetiroCajaModo"
+                           Text="Modo historico SQL para registro de retiros."
+                           TextWrapping="Wrap"
+                           Foreground="#FFFFD966"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,10"/>
+                <TextBlock Name="txtRetiroCajaApiEstado"
+                           Visibility="Collapsed"
+                           TextWrapping="Wrap"
+                           Foreground="#FFFFD966"
+                           Margin="0,0,0,14"/>
                 <TextBlock Text="Dinero en Caja (Calculado):" Foreground="White"/>
                 <TextBox Name="txtDineroCaja" IsReadOnly="True" Margin="0,0,0,20" TextChanged="txtDineroCaja_TextChanged"/>
 
@@ -60,10 +71,14 @@
                 <TextBlock Text="Motivo del Retiro:" Foreground="White"/>
                 <TextBox Name="txtMotivoRetiro" Height="60" TextWrapping="Wrap" Margin="0,0,0,20"/>
 
-               
+                <StackPanel Name="panelReferenciaRetiroApi" Visibility="Collapsed">
+                    <TextBlock Text="Referencia API (opcional):" Foreground="White"/>
+                    <TextBox Name="txtReferenciaRetiroApi" Margin="0,0,0,20"/>
+                </StackPanel>
 
 
-                <Button Content="Registrar Retiro"
+                <Button Name="btnRegistrarRetiro"
+                        Content="Registrar Retiro"
                         Click="RegistrarRetiro_Click"
                         Width="160"
                         Height="40"
