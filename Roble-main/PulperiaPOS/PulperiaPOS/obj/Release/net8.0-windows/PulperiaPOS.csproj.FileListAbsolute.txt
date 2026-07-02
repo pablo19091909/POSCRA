@@ -235,3 +235,5 @@ D:\POSCRA\Roble-main\PulperiaPOS\PulperiaPOS\obj\Release\net8.0-windows\refint\P
 D:\POSCRA\Roble-main\PulperiaPOS\PulperiaPOS\obj\Release\net8.0-windows\PulperiaPOS.pdb
 D:\POSCRA\Roble-main\PulperiaPOS\PulperiaPOS\obj\Release\net8.0-windows\PulperiaPOS.genruntimeconfig.cache
 D:\POSCRA\Roble-main\PulperiaPOS\PulperiaPOS\obj\Release\net8.0-windows\ref\PulperiaPOS.dll
+D:\POSCRA\Roble-main\PulperiaPOS\PulperiaPOS\obj\Release\net8.0-windows\Views\ReversaVentaApiWindow.baml
+D:\POSCRA\Roble-main\PulperiaPOS\PulperiaPOS\obj\Release\net8.0-windows\Views\ReversaVentaApiWindow.g.cs

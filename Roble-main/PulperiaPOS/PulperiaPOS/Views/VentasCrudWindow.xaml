@@ -73,7 +73,10 @@
                 <DataGridTemplateColumn Header="Acciones">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Content="Reimprimir" Click="BtnReimprimir_Click" Tag="{Binding}" Background="#007bff" Foreground="White" Margin="4,0" Padding="4,2"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Reimprimir" Click="BtnReimprimir_Click" Tag="{Binding}" Background="#007bff" Foreground="White" Margin="4,0" Padding="4,2"/>
+                                <Button Content="Reversar API" Click="ReversarVentaApi_Click" Tag="{Binding}" Background="#dc3545" Foreground="White" Margin="4,0" Padding="4,2"/>
+                            </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -88,3 +91,4 @@
                    FontStyle="Italic"/>
     </Grid>
 </Window>
+

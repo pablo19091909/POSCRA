@@ -9,7 +9,9 @@
   },
   "FeatureFlags": {
     "EnableVentasApiWrite": false,
-    "EnableCajaApiWrite": false
+    "EnableCajaApiWrite": false,
+    "EnableVentasApiEfectivoCajaWrite": false,
+    "EnableVentasApiReversaCajaWrite": false
   },
   "EnvironmentSafety": {
     "RequiredDatabaseEnvironment": "Test",

@@ -8,6 +8,7 @@ public static class PermissionNames
     public const string VentasVer = "Ventas.Ver";
     public const string VentasAnular = "Ventas.Anular";
     public const string VentasDevolver = "Ventas.Devolver";
+    public const string VentasReversar = "Ventas.Reversar";
     public const string InventarioVer = "Inventario.Ver";
     public const string InventarioEditar = "Inventario.Editar";
     public const string ClientesVer = "Clientes.Ver";

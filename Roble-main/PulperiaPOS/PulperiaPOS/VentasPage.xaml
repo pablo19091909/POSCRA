@@ -197,7 +197,7 @@
 
         <!-- PARTE INFERIOR -->
         <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Grid.Row="2" HorizontalAlignment="Right">
-            <TextBlock x:Name="VentaApiModeTextBlock" Text="API Test" Visibility="Collapsed" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0" Foreground="#FFE7D365"/>
+            <TextBlock x:Name="VentaApiModeTextBlock" Text="Modo Venta API" Visibility="Collapsed" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0" Foreground="#FFE7D365"/>
             <CheckBox x:Name="ImprimirReciboCheckBox" Content="Imprimir recibo" IsChecked="False" Foreground="White" Margin="10" FontSize="16" Checked="ImprimirReciboCheckBox_Checked_1"/>
             <TextBlock Text="Total Venta:" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" Margin="5" Foreground="White"/>
             <TextBlock x:Name="TotalVentaTextBlock" Text="₡0.00" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" Margin="5" Foreground="White"/>

@@ -48,7 +48,8 @@
                 <Button Content="Ingreso Caja" Click="BtnIngresoCajaPage_Click" FontSize="16" Height="60"/>
                 <Button Content="Retiro Caja" Click="BtnRetiroCajaPage_Click" Margin="0,10" FontSize="16" Height="60"/>
                 <Button Content="Usuarios" Click="BtnUsuariosPage_Click" FontSize="16" Height="60"/>
-                    <Button Content="Tipo de Cambio" Click="BtnTipoCambio_Click" Margin="0,10" FontSize="16" Height="60"/>
+                <Button Content="Reporteria API" Click="BtnReporteriaApi_Click" Margin="0,10" FontSize="16" Height="60"/>
+                <Button Content="Tipo de Cambio" Click="BtnTipoCambio_Click" Margin="0,10" FontSize="16" Height="60"/>
                 </StackPanel>
             </ScrollViewer>
 

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Codex5A3Probe")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d1af841ad38556883f3298760e26c6b66e08d0f9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cbe022ab7c72204bbf11e64320a13506d5ef392c")]
 [assembly: System.Reflection.AssemblyProductAttribute("Codex5A3Probe")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Codex5A3Probe")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

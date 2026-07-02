@@ -10,11 +10,13 @@
     "UseVentasProductosApi": false,
     "UseVentasApiWrite": false,
     "UseVentasApiEfectivoWrite": false,
+    "UseVentasApiReversaWrite": false,
     "UseCajaApiRead": true,
     "UseCajaApiOpenWrite": false,
     "UseCajaApiIngresoWrite": false,
     "UseCajaApiRetiroWrite": false,
-    "UseCajaApiCierreWrite": false
+    "UseCajaApiCierreWrite": false,
+    "UseReportesApiRead": false
   },
   "ConnectionStrings": {
     "PosDatabase": "Server=SERVIDOR;Database=BASE;User Id=USUARIO;Password=CAMBIAR_ESTE_VALOR;Encrypt=True;TrustServerCertificate=False;"

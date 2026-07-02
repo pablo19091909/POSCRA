@@ -25,6 +25,7 @@ namespace PulperiaPOS
 {
     public partial class VentasPage : Window
     {
+        private const string CajaCodigoVentaEfectivoApi = "CAJA_PRINCIPAL_TEST";
         private List<ProductoVenta> productosEnVenta = new();
         private bool limpiarTextoCliente = true;
         private readonly VentaSubmissionCoordinator ventaSubmissionCoordinator = new();
@@ -47,7 +48,7 @@ namespace PulperiaPOS
         {
             if (VentaApiModeTextBlock != null)
             {
-                VentaApiModeTextBlock.Visibility = FeatureFlags.UseVentasApiWrite ? Visibility.Visible : Visibility.Collapsed;
+                VentaApiModeTextBlock.Visibility = FeatureFlags.UseVentasApiEfectivoWrite ? Visibility.Visible : Visibility.Collapsed;
             }
         }
         private List<Cliente> todosLosClientes = new List<Cliente>();
@@ -493,9 +494,15 @@ namespace PulperiaPOS
         {
             if (!ValidarVenta()) return;
 
+            if (DebeUsarVentaEfectivoApi())
+            {
+                await PagarConApiAsync(esVentaEfectivoCajaApi: true);
+                return;
+            }
+
             if (FeatureFlags.UseVentasApiWrite)
             {
-                await PagarConApiAsync();
+                await PagarConApiAsync(esVentaEfectivoCajaApi: false);
                 return;
             }
 
@@ -670,32 +677,57 @@ namespace PulperiaPOS
         }
 
 
-        private async Task PagarConApiAsync()
+        private async Task PagarConApiAsync(bool esVentaEfectivoCajaApi)
         {
             if (ventaApiEnProceso)
             {
                 return;
             }
 
-            if (!TryBuildCrearVentaRequest(out var request, out var intentFingerprint, out var totalVisual))
-            {
-                return;
-            }
-
-            if (MessageBox.Show($"¿Desea confirmar esta venta por ¢{totalVisual:N2}?", "Confirmar Venta API", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
-                return;
-
-            var pendingSubmission = ventaSubmissionCoordinator.GetOrCreate(intentFingerprint);
-            request = request with { IdempotencyKey = pendingSubmission.IdempotencyKey };
-
             ventaApiEnProceso = true;
-            pendingSubmission.MarkInProgress();
             var previousContent = PagarButton.Content;
             PagarButton.IsEnabled = false;
-            PagarButton.Content = "Procesando...";
 
             try
             {
+                if (!TryBuildCrearVentaRequest(out var request, out var intentFingerprint, out var totalVisual))
+                {
+                    return;
+                }
+
+                decimal? efectivoEsperadoActual = null;
+                if (esVentaEfectivoCajaApi)
+                {
+                    var turnoOk = await TryValidarTurnoAbiertoParaVentaEfectivoAsync();
+                    if (!turnoOk.Success)
+                    {
+                        return;
+                    }
+
+                    efectivoEsperadoActual = turnoOk.EfectivoEsperado;
+                }
+
+                var mensajeConfirmacion = esVentaEfectivoCajaApi
+                    ? $"¿Desea confirmar esta venta por ¢{totalVisual:N2}?\n\nSe registrará por Venta API e impactará Caja API."
+                    : $"¿Desea confirmar esta venta por ¢{totalVisual:N2}?";
+
+                if (efectivoEsperadoActual.HasValue)
+                {
+                    mensajeConfirmacion += $"\nEfectivo esperado actual: ¢{efectivoEsperadoActual.Value:N2}.";
+                }
+
+                if (MessageBox.Show(mensajeConfirmacion, "Confirmar Venta API", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                var pendingSubmission = ventaSubmissionCoordinator.GetOrCreate(intentFingerprint);
+                request = request with { IdempotencyKey = pendingSubmission.IdempotencyKey };
+
+                pendingSubmission.MarkInProgress();
+                SetVentaApiControlsEnabled(false);
+                PagarButton.Content = "Procesando...";
+
                 using var client = new VentasApiClient();
                 var result = await client.CrearVentaAsync(request);
 
@@ -706,27 +738,126 @@ namespace PulperiaPOS
                     return;
                 }
 
-                if (ImprimirReciboCheckBox != null && ImprimirReciboCheckBox.IsChecked == true)
+                if (!esVentaEfectivoCajaApi &&
+                    ImprimirReciboCheckBox != null && ImprimirReciboCheckBox.IsChecked == true)
                 {
                     ImprimirReciboVentaApi(result.Data);
                 }
 
                 ventaSubmissionCoordinator.Clear();
-                MessageBox.Show(
-                    $"Venta API registrada correctamente.\nFactura: {result.Data.Factura}\nTotal: ¢{result.Data.Total:N2}\nVuelto: ¢{(result.Data.Vuelto ?? 0):N2}",
-                    "Venta API",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                var mensajeExito = esVentaEfectivoCajaApi
+                    ? $"La venta fue registrada correctamente por Venta API + Caja API.\nTotal: ¢{result.Data.Total:N2}\nVuelto: ¢{(result.Data.Vuelto ?? 0):N2}"
+                    : $"Venta API registrada correctamente.\nFactura: {result.Data.Factura}\nTotal: ¢{result.Data.Total:N2}\nVuelto: ¢{(result.Data.Vuelto ?? 0):N2}";
+
+                MessageBox.Show(mensajeExito, "Venta API", MessageBoxButton.OK, MessageBoxImage.Information);
                 ReiniciarFormularioVenta();
             }
             finally
             {
                 ventaApiEnProceso = false;
                 PagarButton.Content = previousContent;
-                PagarButton.IsEnabled = true;
+                SetVentaApiControlsEnabled(true);
             }
         }
 
+        private bool DebeUsarVentaEfectivoApi()
+        {
+            var metodoPagoSeleccionado = (MetodoPagoComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
+            return FeatureFlags.UseVentasApiEfectivoWrite &&
+                string.Equals(metodoPagoSeleccionado, "Efectivo", StringComparison.Ordinal);
+        }
+
+        private async Task<(bool Success, decimal? EfectivoEsperado)> TryValidarTurnoAbiertoParaVentaEfectivoAsync()
+        {
+            using var cajaClient = new CajaApiClient();
+            var turnoResult = await cajaClient.GetTurnoAbiertoAsync(CajaCodigoVentaEfectivoApi);
+            if (!turnoResult.Success)
+            {
+                MostrarErrorCajaParaVentaEfectivo(turnoResult.ErrorType);
+                return (false, null);
+            }
+
+            if (turnoResult.Data is null)
+            {
+                MessageBox.Show(
+                    "No existe un turno de caja abierto para registrar una venta en efectivo.",
+                    "Venta API",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return (false, null);
+            }
+
+            if (string.Equals(turnoResult.Data.Estado, "EnCierre", StringComparison.Ordinal))
+            {
+                MessageBox.Show(
+                    "El turno de caja está en proceso de cierre. No se pueden registrar ventas en efectivo.",
+                    "Venta API",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return (false, null);
+            }
+
+            if (string.Equals(turnoResult.Data.Estado, "Cerrado", StringComparison.Ordinal))
+            {
+                MessageBox.Show(
+                    "El turno de caja ya fue cerrado.",
+                    "Venta API",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return (false, null);
+            }
+
+            if (!string.Equals(turnoResult.Data.Estado, "Abierto", StringComparison.Ordinal))
+            {
+                MessageBox.Show(
+                    "No existe un turno de caja abierto para registrar una venta en efectivo.",
+                    "Venta API",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return (false, null);
+            }
+
+            var preCierreResult = await cajaClient.GetPreCierreAsync(turnoResult.Data.IdTurno);
+            if (!preCierreResult.Success || preCierreResult.Data is null)
+            {
+                MostrarErrorCajaParaVentaEfectivo(preCierreResult.ErrorType);
+                return (false, null);
+            }
+
+            return (true, preCierreResult.Data.EfectivoEsperado);
+        }
+
+        private static void MostrarErrorCajaParaVentaEfectivo(ApiErrorType errorType)
+        {
+            var message = errorType switch
+            {
+                ApiErrorType.Unauthorized or ApiErrorType.SessionExpired =>
+                    "La sesión expiró. Inicie sesión nuevamente.",
+                ApiErrorType.Forbidden =>
+                    "El usuario actual no tiene permiso para consultar el turno de caja.",
+                ApiErrorType.Timeout =>
+                    "No fue posible confirmar el resultado de la venta. Revise la conexión y reintente sin cambiar los datos.",
+                ApiErrorType.Network =>
+                    "No fue posible comunicarse con el servicio de ventas y caja. Intente nuevamente.",
+                _ =>
+                    "No fue posible comunicarse con el servicio de ventas y caja. Intente nuevamente."
+            };
+
+            MessageBox.Show(message, "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private void SetVentaApiControlsEnabled(bool isEnabled)
+        {
+            PagarButton.IsEnabled = isEnabled;
+            ClienteComboBox.IsEnabled = isEnabled;
+            MetodoPagoComboBox.IsEnabled = isEnabled;
+            BuscarProductoTextBox.IsEnabled = isEnabled;
+            ProductosDataGrid.IsEnabled = isEnabled;
+            MontoPagadoTextBox.IsEnabled = isEnabled;
+            VoucherTextBox.IsEnabled = isEnabled;
+            ComprobanteTextBox.IsEnabled = isEnabled;
+            ImprimirReciboCheckBox.IsEnabled = isEnabled;
+        }
         private bool TryBuildCrearVentaRequest(out CrearVentaRequest request, out string intentFingerprint, out double totalVisual)
         {
             request = default!;
@@ -993,7 +1124,7 @@ namespace PulperiaPOS
                         MetodoPagoComboBox.Items.Add(saldoClienteItem);
 
                     // En modo API, el operador debe poder elegir Efectivo, Tarjeta, Sinpe o Saldo Cliente.
-                    if (FeatureFlags.UseVentasApiWrite)
+                    if (FeatureFlags.UseVentasApiWrite || FeatureFlags.UseVentasApiEfectivoWrite)
                     {
                         MetodoPagoComboBox.IsEnabled = true;
                         if (MetodoPagoComboBox.SelectedItem == null || MetodoPagoComboBox.SelectedItem == saldoClienteItem)
@@ -1016,7 +1147,7 @@ namespace PulperiaPOS
                     SaldoClienteTextBlock.Text = $"¢{saldoCliente:N2}";
                     SaldoRestanteTextBlock.Text = $"¢{saldoRestante:N2}";
 
-                    if (!FeatureFlags.UseVentasApiWrite)
+                    if (!FeatureFlags.UseVentasApiWrite && !FeatureFlags.UseVentasApiEfectivoWrite)
                     {
                         PagarButton.IsEnabled = saldoRestante >= 0;
                         if (saldoRestante < 0)
@@ -1038,7 +1169,7 @@ namespace PulperiaPOS
 
         private bool ValidarSaldoClienteApiSeleccionado()
         {
-            if (!FeatureFlags.UseVentasApiWrite)
+            if (!FeatureFlags.UseVentasApiWrite && !FeatureFlags.UseVentasApiEfectivoWrite)
             {
                 return true;
             }
@@ -1088,7 +1219,7 @@ namespace PulperiaPOS
         {
             string metodoPagoSeleccionado = (MetodoPagoComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
-            if (FeatureFlags.UseVentasApiWrite && metodoPagoSeleccionado == "Dólares")
+            if ((FeatureFlags.UseVentasApiWrite || FeatureFlags.UseVentasApiEfectivoWrite) && metodoPagoSeleccionado == "Dólares")
             {
                 MessageBox.Show("Dólares no está soportado por venta API V1.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
                 if (MetodoPagoComboBox.Items[0] is ComboBoxItem efectivoItem)
@@ -1154,7 +1285,7 @@ namespace PulperiaPOS
                     ComprobantePanel.Visibility = Visibility.Collapsed;
                     VoucherTextBox.Clear();
                     ComprobanteTextBox.Clear();
-                    if (FeatureFlags.UseVentasApiWrite)
+                    if (FeatureFlags.UseVentasApiWrite || FeatureFlags.UseVentasApiEfectivoWrite)
                     {
                         MontoPagadoPanel.Visibility = Visibility.Collapsed;
                         VueltoPanel.Visibility = Visibility.Collapsed;
@@ -1190,7 +1321,7 @@ namespace PulperiaPOS
         {
             string metodoPagoSeleccionado = (MetodoPagoComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
-            if (FeatureFlags.UseVentasApiWrite && metodoPagoSeleccionado == "Dólares")
+            if ((FeatureFlags.UseVentasApiWrite || FeatureFlags.UseVentasApiEfectivoWrite) && metodoPagoSeleccionado == "Dólares")
             {
                 MessageBox.Show("Dólares no está soportado por venta API V1.", "Venta API", MessageBoxButton.OK, MessageBoxImage.Warning);
                 if (MetodoPagoComboBox.Items[0] is ComboBoxItem efectivoItem)

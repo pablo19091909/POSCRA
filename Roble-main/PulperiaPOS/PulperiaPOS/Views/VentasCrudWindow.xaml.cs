@@ -1,4 +1,7 @@
 ﻿using PulperiaPOS.DataAccess;
+using PulperiaPOS.ApiClients;
+using PulperiaPOS.Configuration;
+using PulperiaPOS.Models.Ventas;
 using PulperiaPOS.Views;
 using System;
 using System;
@@ -50,9 +53,35 @@ namespace PulperiaPOS.Views
                             v.monto_pagado,
                             v.vuelto,
                             v.cliente_id,
-                            v.usuario_id
+                            v.usuario_id,
+                            CASE WHEN vp.idPago IS NOT NULL AND mc.idMovimiento IS NOT NULL THEN 1 ELSE 0 END AS es_api_efectivo,
+                            CASE WHEN vr.idReversa IS NOT NULL THEN 1 ELSE 0 END AS reversada_api
                         FROM ventas v
-                        LEFT JOIN cliente c ON v.cliente_id = c.idCliente";
+                        LEFT JOIN cliente c ON v.cliente_id = c.idCliente
+                        OUTER APPLY (
+                            SELECT TOP (1) idPago
+                            FROM venta_pago
+                            WHERE factura = v.factura
+                              AND metodo_pago = 'Efectivo'
+                              AND estado = 'Registrado'
+                            ORDER BY idPago DESC
+                        ) vp
+                        OUTER APPLY (
+                            SELECT TOP (1) idMovimiento
+                            FROM movimiento_caja
+                            WHERE factura = v.factura
+                              AND pago_id = vp.idPago
+                              AND tipo_movimiento = 'VentaEfectivo'
+                              AND estado = 'Confirmado'
+                            ORDER BY idMovimiento DESC
+                        ) mc
+                        OUTER APPLY (
+                            SELECT TOP (1) idReversa
+                            FROM venta_reversa
+                            WHERE factura = v.factura
+                              AND estado = 'Confirmada'
+                            ORDER BY idReversa DESC
+                        ) vr";
 
                     var adapter = new SqlDataAdapter(query, connection);
                     var dataTable = new DataTable();
@@ -156,6 +185,12 @@ namespace PulperiaPOS.Views
 
             long numeroFactura = Convert.ToInt64(ventaSeleccionada["factura"]);
 
+            if (FeatureFlags.UseVentasApiReversaWrite && EsVentaApiEfectivo(ventaSeleccionada))
+            {
+                MessageBox.Show("Esta venta API en efectivo no puede borrarse físicamente. Use Modo Reversa API.", "Modo Reversa API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             try
             {
                 using var connection = DBConnection.GetConnection();
@@ -238,6 +273,95 @@ namespace PulperiaPOS.Views
             {
                 MessageBox.Show("❌ Error al eliminar la venta:\n" + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private async void ReversarVentaApi_Click(object sender, RoutedEventArgs e)
+        {
+            if (!FeatureFlags.UseVentasApiReversaWrite)
+            {
+                MessageBox.Show("Modo Reversa API está deshabilitado.", "Modo Reversa API", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (sender is not Button button || button.Tag is not DataRowView row)
+            {
+                MessageBox.Show("Seleccione una venta válida.", "Modo Reversa API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!UserSession.HasPermission("Ventas.Reversar"))
+            {
+                MessageBox.Show("No tiene permiso para reversar ventas por API.", "Modo Reversa API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!EsVentaApiEfectivo(row))
+            {
+                MessageBox.Show("Solo ventas API pagadas completamente en efectivo pueden reversarse en este modo.", "Modo Reversa API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (EstaReversadaApi(row))
+            {
+                MessageBox.Show("Esta venta ya fue reversada por API.", "Modo Reversa API", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var factura = Convert.ToInt64(row["factura"]);
+            var total = Convert.ToDecimal(row["total"]);
+            var metodoPago = Convert.ToString(row["metodo_pago"]) ?? "Efectivo";
+
+            var dialog = new ReversaVentaApiWindow(factura, total, metodoPago)
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            button.IsEnabled = false;
+            VentasDataGrid.IsEnabled = false;
+
+            try
+            {
+                using var client = new VentasApiClient();
+                var request = new ReversarVentaRequest
+                {
+                    IdempotencyKey = Guid.NewGuid(),
+                    Motivo = dialog.Motivo
+                };
+
+                var result = await client.ReversarVentaAsync(Convert.ToInt32(factura), request);
+                if (!result.Success)
+                {
+                    MessageBox.Show(result.Message, "Modo Reversa API", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                MessageBox.Show("La venta fue reversada correctamente por API.", "Modo Reversa API", MessageBoxButton.OK, MessageBoxImage.Information);
+                CargarVentas();
+            }
+            finally
+            {
+                VentasDataGrid.IsEnabled = true;
+                button.IsEnabled = true;
+            }
+        }
+
+        private static bool EsVentaApiEfectivo(DataRowView row)
+        {
+            return row.Row.Table.Columns.Contains("es_api_efectivo") &&
+                   row["es_api_efectivo"] != DBNull.Value &&
+                   Convert.ToInt32(row["es_api_efectivo"]) == 1;
+        }
+
+        private static bool EstaReversadaApi(DataRowView row)
+        {
+            return row.Row.Table.Columns.Contains("reversada_api") &&
+                   row["reversada_api"] != DBNull.Value &&
+                   Convert.ToInt32(row["reversada_api"]) == 1;
         }
 
         private void VerDetalleVenta_Click(object sender, RoutedEventArgs e)
@@ -383,3 +507,5 @@ namespace PulperiaPOS.Views
         }
     }
 }
+
+

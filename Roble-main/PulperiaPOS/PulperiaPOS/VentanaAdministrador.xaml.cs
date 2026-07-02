@@ -133,6 +133,12 @@ namespace PulperiaPOS
             var ventana = new TipoCambioWindow();
             ventana.ShowDialog();
         }
+
+        private void BtnReporteriaApi_Click(object sender, RoutedEventArgs e)
+        {
+            var ventana = new ReporteriaApiWindow();
+            ventana.ShowDialog();
+        }
     }
 
 }

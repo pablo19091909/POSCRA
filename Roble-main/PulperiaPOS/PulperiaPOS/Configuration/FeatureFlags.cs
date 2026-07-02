@@ -56,6 +56,15 @@ namespace PulperiaPOS.Configuration
             }
         }
 
+        public static bool UseVentasApiReversaWrite
+        {
+            get
+            {
+                var configuredValue = AppConfiguration.Current["FeatureFlags:UseVentasApiReversaWrite"];
+                return bool.TryParse(configuredValue, out var enabled) && enabled;
+            }
+        }
+
         public static bool UseCajaApiRead
         {
             get
@@ -97,6 +106,15 @@ namespace PulperiaPOS.Configuration
             get
             {
                 var configuredValue = AppConfiguration.Current["FeatureFlags:UseCajaApiCierreWrite"];
+                return bool.TryParse(configuredValue, out var enabled) && enabled;
+            }
+        }
+
+        public static bool UseReportesApiRead
+        {
+            get
+            {
+                var configuredValue = AppConfiguration.Current["FeatureFlags:UseReportesApiRead"];
                 return bool.TryParse(configuredValue, out var enabled) && enabled;
             }
         }

@@ -497,14 +497,18 @@ public sealed class CajaRepository : ICajaRepository
         const string sql = """
             SELECT COALESCE(SUM(
                 CASE
-                    WHEN tipo_movimiento IN (N'FondoInicial', N'VentaEfectivo', N'IngresoCaja', N'AjustePositivo') THEN monto
-                    WHEN tipo_movimiento IN (N'RetiroCaja', N'AjusteNegativo', N'DevolucionEfectivo') THEN -monto
+                    WHEN m.tipo_movimiento IN (N'FondoInicial', N'VentaEfectivo', N'IngresoCaja', N'AjustePositivo') THEN m.monto
+                    WHEN m.tipo_movimiento IN (N'RetiroCaja', N'AjusteNegativo', N'DevolucionEfectivo') THEN -m.monto
+                    WHEN m.tipo_movimiento = N'Reversa' AND original.tipo_movimiento IN (N'FondoInicial', N'VentaEfectivo', N'IngresoCaja', N'AjustePositivo') THEN -m.monto
+                    WHEN m.tipo_movimiento = N'Reversa' AND original.tipo_movimiento IN (N'RetiroCaja', N'AjusteNegativo', N'DevolucionEfectivo') THEN m.monto
                     ELSE 0
                 END), 0)
-            FROM dbo.movimiento_caja
-            WHERE idTurno = @idTurno
-              AND estado = N'Confirmado'
-              AND tipo_movimiento <> N'CierreDiferencia';
+            FROM dbo.movimiento_caja m
+            LEFT JOIN dbo.movimiento_caja original
+                ON original.idMovimiento = m.reversa_de_movimiento_id
+            WHERE m.idTurno = @idTurno
+              AND m.estado = N'Confirmado'
+              AND m.tipo_movimiento <> N'CierreDiferencia';
             """;
 
         await using var command = new SqlCommand(sql, connection);

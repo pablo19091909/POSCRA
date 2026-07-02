@@ -19,5 +19,18 @@ namespace PulperiaPOS.ApiClients
                 body: request,
                 cancellationToken: cancellationToken);
         }
+
+        public Task<ApiRequestResult<ReversarVentaResponse>> ReversarVentaAsync(
+            int factura,
+            ReversarVentaRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return SendAsync<ReversarVentaResponse>(
+                HttpMethod.Post,
+                $"api/ventas/{factura}/reversas",
+                requiresAuthentication: true,
+                body: request,
+                cancellationToken: cancellationToken);
+        }
     }
 }

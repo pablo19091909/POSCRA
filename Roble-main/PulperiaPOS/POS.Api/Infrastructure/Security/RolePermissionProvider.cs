@@ -12,6 +12,7 @@ public sealed class RolePermissionProvider : IPermissionProvider
         PermissionNames.VentasVer,
         PermissionNames.VentasAnular,
         PermissionNames.VentasDevolver,
+        PermissionNames.VentasReversar,
         PermissionNames.InventarioVer,
         PermissionNames.InventarioEditar,
         PermissionNames.ClientesVer,

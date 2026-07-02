@@ -7,4 +7,6 @@ public sealed class FeatureFlagsOptions
     public bool EnableCajaApiWrite { get; init; } = false;
 
     public bool EnableVentasApiEfectivoCajaWrite { get; init; } = false;
+
+    public bool EnableVentasApiReversaCajaWrite { get; init; } = false;
 }
